@@ -141,4 +141,8 @@ ImGuiFileDialog.get_filename = function()
     return selected
 end
 
+ImGuiFileDialog.reset_filename = function()
+    selected = ''
+end
+
 return ImGuiFileDialog
