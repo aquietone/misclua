@@ -66,6 +66,15 @@ ImGuiFileDialog.draw_file_selector = function(path, pattern)
             openGUI = false
             selected = internal_selected
         end
+        if #sorted_items == 0 then
+            for file in lfs.dir(path) do
+                if file ~= '.' and file ~= '..' and file:find(pattern) then
+                    local f = path..'/'..file
+                    local attr = lfs.attributes(f)
+                    table.insert(sorted_items, {name=file,size=attr.size,date=attr.modification})
+                end
+            end
+        end
         if ImGui.BeginChild('FileTable') then
             local flags = bit32.bor(ImGuiTableFlags.Resizable, ImGuiTableFlags.Sortable, ImGuiTableFlags.RowBg, ImGuiTableFlags.BordersOuter, ImGuiTableFlags.BordersV, ImGuiTableFlags.NoBordersInBody, ImGuiTableFlags.ScrollY)
             if ImGui.BeginTable('File Dialog', 3, flags) then
@@ -74,15 +83,6 @@ ImGuiFileDialog.draw_file_selector = function(path, pattern)
                 ImGui.TableSetupColumn('Last Updated', ImGuiTableColumnFlags.DefaultSort, -1.0, ColumnID_Date)
                 ImGui.TableSetupScrollFreeze(0, 1)
 
-                if #sorted_items == 0 then
-                    for file in lfs.dir(path) do
-                        if file ~= '.' and file ~= '..' and file:find(pattern) then
-                            local f = path..'/'..file
-                            local attr = lfs.attributes(f)
-                            table.insert(sorted_items, {name=file,size=attr.size,date=attr.modification})
-                        end
-                    end
-                end
                 local sort_specs = ImGui.TableGetSortSpecs()
                 if sort_specs then
                     if sort_specs.SpecsDirty then
@@ -99,25 +99,25 @@ ImGuiFileDialog.draw_file_selector = function(path, pattern)
                 local clipper = ImGuiListClipper.new()
                 clipper:Begin(#sorted_items)
                 while clipper:Step() do
-                    for row_n = clipper.DisplayStart, clipper.DisplayEnd - 1, 1 do
+                    for row_n = clipper.DisplayStart, clipper.DisplayEnd, 1 do
                         local file = sorted_items[row_n + 1]
-                        ImGui.TableNextRow()
-                        ImGui.TableNextColumn()
-                        if ImGui.Selectable(file.name, internal_selected == file.name, ImGuiSelectableFlags.SpanAllColumns) then
-                            if internal_selected ~= file.name then
-                                internal_selected = file.name
+                        if file then
+                            ImGui.TableNextRow()
+                            ImGui.TableNextColumn()
+                            if ImGui.Selectable(file.name, internal_selected == file.name, ImGuiSelectableFlags.SpanAllColumns) then
+                                if internal_selected ~= file.name then
+                                    internal_selected = file.name
+                                end
                             end
+                            if ImGui.IsItemHovered() and ImGui.IsMouseDoubleClicked(0) then
+                                openGUI = false
+                                selected = internal_selected
+                            end
+                            ImGui.TableNextColumn()
+                            ImGui.Text(file.size)
+                            ImGui.TableNextColumn()
+                            ImGui.Text(os.date("%c", file.date))
                         end
-                        if ImGui.IsItemHovered() and ImGui.IsMouseDoubleClicked(0) then
-                            openGUI = false
-                            selected = internal_selected
-                        end
-                        ImGui.TableNextColumn()
-                        ImGui.Text(file.size)
-                        ImGui.TableNextColumn()
-                        ImGui.Text(os.date("%c", file.date))
-                        ImGui.TableNextRow()
-                        ImGui.TableNextColumn()
                     end
                 end
                 ImGui.EndTable()
