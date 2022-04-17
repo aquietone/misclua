@@ -27,9 +27,15 @@ local function CompareWithSortSpecs(a, b)
         local sort_spec = current_sort_specs:Specs(n)
         local delta = 0
 
-        if a[sortmappings[sort_spec.ColumnUserID]] < b[sortmappings[sort_spec.ColumnUserID]] then
+        local aval = a[sortmappings[sort_spec.ColumnUserID]]
+        local bval = b[sortmappings[sort_spec.ColumnUserID]]
+        if sort_spec.ColumnUserID == ColumnID_Name then
+            aval = aval:lower()
+            bval = bval:lower()
+        end
+        if aval < bval then
             delta = -1
-        elseif b[sortmappings[sort_spec.ColumnUserID]] < a[sortmappings[sort_spec.ColumnUserID]] then
+        elseif bval < aval then
             delta = 1
         else
             delta = 0
