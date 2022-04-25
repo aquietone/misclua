@@ -46,13 +46,9 @@ local function event_points(line, target)
     end
 end
 local function event_maset(line, ma)
-    if ma == mq.TLO.Me.CleanName() then
-        i_am_ma = true
-        print('I\'ve been set as MA!')
-    else
-        i_am_ma = false
-        print(ma..' has been set as MA!')
-    end
+    i_am_ma = mq.TLO.Group.Member(0).MainAssist()
+    ma_name = mq.TLO.Group.MainAssist.CleanName()
+    print('MA has been reset!')
 end
 
 mq.event('event_maset', '#1# is now group Main Assist', event_maset)
