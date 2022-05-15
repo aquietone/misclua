@@ -47,7 +47,7 @@ function Cache:clean()
             end
         end
         --if numremoved > 0 then
-        --    print(string.format('Cache size before: %d, Cache size afterp: %d', size, size-numremoved))
+        --    print(string.format('Cache size before: %d, Cache size after: %d', size, size-numremoved))
         --end
     end
 end
