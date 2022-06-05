@@ -36,12 +36,19 @@ end
 
 ---Remove least recently used entries from the cache if maximum size is exceeded
 function Cache:clean()
-    if self:size() > self.maxsize then
+    local size = self:size()
+    if size > self.maxsize then
+        --local numremoved = 0
         for key,value in pairs(self.data) do
             if os.difftime(os.time(), value.lastaccessed) > self.expiration then
+                --print(string.format('Removing cached entry: %s=%s', key, self.data[key]))
                 self.data[key] = nil
+                --numremoved = numremoved+1
             end
         end
+        --if numremoved > 0 then
+        --    print(string.format('Cache size before: %d, Cache size afterp: %d', size, size-numremoved))
+        --end
     end
 end
 
