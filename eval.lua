@@ -1,5 +1,3 @@
--- Probably never actually use this script for anything ever
-
 local mq = require 'mq'
 require 'ImGui'
 
