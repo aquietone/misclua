@@ -31,11 +31,7 @@ end
 ---Check whether the specified timer has passed its expiration.
 ---@return boolean @Returns true if the timer has expired, otherwise false.
 function Timer:timer_expired()
-    if os.difftime(Timer.current_time(), self.start_time) > self.expiration then
-        return true
-    else
-        return false
-    end
+    return os.difftime(Timer.current_time(), self.start_time) > self.expiration
 end
 
 ---Get the time remaining before the timer expires.
