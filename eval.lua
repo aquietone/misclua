@@ -14,7 +14,7 @@ local function drawControlButtons()
         table.insert(inputs, '')
     end
     ImGui.SameLine()
-    ImGui.PushStyleColor(ImGuiCol.Button, 1, 0, 0, 1)
+    ImGui.PushStyleColor(ImGuiCol.Button, .6, 0, 0, 1)
     if ImGui.Button('Clear') then
         inputs = {}
     end
@@ -27,7 +27,8 @@ local function processInput(input)
         if type(result) == 'function' then
             success, result = pcall(result)
             if success then
-                return result
+                local typeSuccess, mqtype = pcall(mq.gettype, result)
+                return result, type(result), typeSuccess and mqtype or ''
             end
         end
     end
@@ -42,7 +43,7 @@ local evalui = function()
         end
         drawControlButtons()
 
-        ImGui.PushStyleColor(ImGuiCol.Button, 1, 0, 0, 1)
+        ImGui.PushStyleColor(ImGuiCol.Button, .6, 0, 0, 1)
         for i,j in ipairs(inputs) do
             ImGui.PushItemWidth(width-45)
             inputs[i] = ImGui.InputTextWithHint('##input'..i, 'mq.TLO.Me.CleanName()', inputs[i])
@@ -57,16 +58,22 @@ local evalui = function()
                 table.remove(inputs, i)
             end
 
-            local output = processInput(currentLine)
+            local output, outputType, mqType = processInput(currentLine)
             if currentLine:len() > 0 then
                 ImGui.TextColored(0,1,1,1,'Output:')
                 ImGui.SameLine()
-                ImGui.SetCursorPosX(80)
+                ImGui.SetCursorPosX(60)
                 ImGui.Text(tostring(output))
                 ImGui.TextColored(0,1,1,1,'Type:')
                 ImGui.SameLine()
-                ImGui.SetCursorPosX(80)
-                ImGui.Text(type(output))
+                ImGui.SetCursorPosX(60)
+                ImGui.Text(outputType)
+                ImGui.SameLine()
+                ImGui.SetCursorPosX(140)
+                ImGui.TextColored(0,1,1,1,'MQType:')
+                ImGui.SameLine()
+                ImGui.SetCursorPosX(200)
+                ImGui.Text(mqType)
             end
         end
         ImGui.PopStyleColor()
