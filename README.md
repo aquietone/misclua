@@ -22,6 +22,8 @@ Casts cures on any targeted character in the group. Curing is handled by the scr
 
 Like the macro expression evaluator, but for displaying lua parse values. I don't recommend running this code as its got deprecated, insecure calls being used, like `loadstring`.
 
+![](images/eval.png)
+
 # uisample
 
 A very simplistic UI script to just create a single empty ImGui window.

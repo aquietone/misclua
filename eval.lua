@@ -1,3 +1,4 @@
+-- eval.lua
 local mq = require 'mq'
 require 'ImGui'
 
@@ -8,27 +9,67 @@ local terminate = false
 
 local inputs = {}
 
--- ImGui main function for rendering the UI window
-local uisample = function()
-    openGUI, shouldDrawGUI = ImGui.Begin('eval', openGUI)
-    if shouldDrawGUI then
-        if ImGui.Button('Add') then
-            table.insert(inputs, '')
-        end
-        for i,j in ipairs(inputs) do
-            inputs[i] = ImGui.InputText('##input'..i, inputs[i])
-            local success, result = pcall(loadstring, 'local mq = require(\'mq\'); return '..inputs[i])
+local function drawControlButtons()
+    if ImGui.Button('Add') then
+        table.insert(inputs, '')
+    end
+    ImGui.SameLine()
+    ImGui.PushStyleColor(ImGuiCol.Button, 1, 0, 0, 1)
+    if ImGui.Button('Clear') then
+        inputs = {}
+    end
+    ImGui.PopStyleColor()
+end
+
+local function processInput(input)
+    local success, result = pcall(loadstring, 'local mq = require(\'mq\'); return '..input)
+    if success then
+        if type(result) == 'function' then
+            success, result = pcall(result)
             if success then
-                if type(result) == 'function' then
-                    local s2, funcresult = pcall(result)
-                    if s2 then
-                        ImGui.Text(tostring(funcresult or ''))
-                    end
-                end
-            else
-                ImGui.Text('Failed to parse input string')
+                return result
             end
         end
+    end
+end
+
+local evalui = function()
+    openGUI, shouldDrawGUI = ImGui.Begin('Lua Expression Evaluator', openGUI)
+    if shouldDrawGUI then
+        local width, height = ImGui.GetWindowSize()
+        if ImGui.GetContentRegionAvail() < 350 then
+            ImGui.SetWindowSize(350, height)
+        end
+        drawControlButtons()
+
+        ImGui.PushStyleColor(ImGuiCol.Button, 1, 0, 0, 1)
+        for i,j in ipairs(inputs) do
+            ImGui.PushItemWidth(width-45)
+            inputs[i] = ImGui.InputTextWithHint('##input'..i, 'mq.TLO.Me.CleanName()', inputs[i])
+            ImGui.PopItemWidth()
+            ImGui.SameLine()
+
+            -- replace any mq.tlo because it just crashes eq!
+            inputs[i],_ = inputs[i]:gsub('mq.tlo', 'mq.TLO')
+            local currentLine = inputs[i]
+
+            if ImGui.Button('X##'..i) then
+                table.remove(inputs, i)
+            end
+
+            local output = processInput(currentLine)
+            if currentLine:len() > 0 then
+                ImGui.TextColored(0,1,1,1,'Output:')
+                ImGui.SameLine()
+                ImGui.SetCursorPosX(80)
+                ImGui.Text(tostring(output))
+                ImGui.TextColored(0,1,1,1,'Type:')
+                ImGui.SameLine()
+                ImGui.SetCursorPosX(80)
+                ImGui.Text(type(output))
+            end
+        end
+        ImGui.PopStyleColor()
     end
     ImGui.End()
     if not openGUI then
@@ -36,7 +77,7 @@ local uisample = function()
     end
 end
 
-mq.imgui.init('eval', uisample)
+mq.imgui.init('eval', evalui)
 
 while not terminate do
     mq.delay(1000)
