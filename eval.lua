@@ -51,14 +51,21 @@ local evalui = function()
             ImGui.SameLine()
 
             -- replace any mq.tlo because it just crashes eq!
-            inputs[i],_ = inputs[i]:gsub('mq.tlo', 'mq.TLO')
+            --inputs[i],_ = inputs[i]:gsub('mq.tlo', 'mq.TLO')
             local currentLine = inputs[i]
 
             if ImGui.Button('X##'..i) then
                 table.remove(inputs, i)
             end
 
-            local output, outputType, mqType = processInput(currentLine)
+            local output, outputType, mqType
+            if inputs[i]:lower():find('mq.tlo') and not inputs[i]:find('mq.TLO') then
+                output = '\'mq.TLO\' is case sensitive'
+                outputType = 'N/A'
+                mqType = 'N/A'
+            else
+                output, outputType, mqType = processInput(currentLine)
+            end
             if currentLine:len() > 0 then
                 ImGui.TextColored(0,1,1,1,'Output:')
                 ImGui.SameLine()
