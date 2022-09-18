@@ -1,5 +1,7 @@
 -- eval.lua
+---@type Mq
 local mq = require 'mq'
+---@type ImGui
 require 'ImGui'
 
 -- GUI Control variables
@@ -28,10 +30,37 @@ local function processInput(input)
             success, result = pcall(result)
             if success then
                 local typeSuccess, mqtype = pcall(mq.gettype, result)
-                return result, type(result), typeSuccess and mqtype or ''
+                return result, type(result), typeSuccess and tostring(mqtype) or ''
             end
         end
     end
+end
+
+local  function handleEvalEntry(input)
+    if not input or input:len() == 0 then return end
+    -- evaluating 'mq.tlo' causes a client crash, so prevent parsing it and warn about case sensitivity instead.
+    local output, outputType, mqType
+    if input:lower():find('mq.tlo') and not input:find('mq.TLO') then
+        output = '\'mq.TLO\' is case sensitive'
+        outputType = 'N/A'
+        mqType = 'N/A'
+    else
+        output, outputType, mqType = processInput(input)
+    end
+    ImGui.TextColored(0,1,1,1,'Output:')
+    ImGui.SameLine()
+    ImGui.SetCursorPosX(60)
+    ImGui.Text(tostring(output))
+    ImGui.TextColored(0,1,1,1,'Type:')
+    ImGui.SameLine()
+    ImGui.SetCursorPosX(60)
+    ImGui.Text(outputType)
+    ImGui.SameLine()
+    ImGui.SetCursorPosX(140)
+    ImGui.TextColored(0,1,1,1,'MQType:')
+    ImGui.SameLine()
+    ImGui.SetCursorPosX(200)
+    ImGui.Text(mqType)
 end
 
 local evalui = function()
@@ -50,38 +79,11 @@ local evalui = function()
             ImGui.PopItemWidth()
             ImGui.SameLine()
 
-            -- replace any mq.tlo because it just crashes eq!
-            --inputs[i],_ = inputs[i]:gsub('mq.tlo', 'mq.TLO')
-            local currentLine = inputs[i]
-
             if ImGui.Button('X##'..i) then
                 table.remove(inputs, i)
             end
 
-            local output, outputType, mqType
-            if inputs[i]:lower():find('mq.tlo') and not inputs[i]:find('mq.TLO') then
-                output = '\'mq.TLO\' is case sensitive'
-                outputType = 'N/A'
-                mqType = 'N/A'
-            else
-                output, outputType, mqType = processInput(currentLine)
-            end
-            if currentLine:len() > 0 then
-                ImGui.TextColored(0,1,1,1,'Output:')
-                ImGui.SameLine()
-                ImGui.SetCursorPosX(60)
-                ImGui.Text(tostring(output))
-                ImGui.TextColored(0,1,1,1,'Type:')
-                ImGui.SameLine()
-                ImGui.SetCursorPosX(60)
-                ImGui.Text(outputType)
-                ImGui.SameLine()
-                ImGui.SetCursorPosX(140)
-                ImGui.TextColored(0,1,1,1,'MQType:')
-                ImGui.SameLine()
-                ImGui.SetCursorPosX(200)
-                ImGui.Text(mqType)
-            end
+            handleEvalEntry(inputs[i])
         end
         ImGui.PopStyleColor()
     end
