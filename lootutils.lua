@@ -5,7 +5,7 @@ local LIP = require 'lib.LIP'
 local lootFile = mq.configDir .. '/Loot.ini'
 local lootData = LIP.load(lootFile)
 local shouldLootMobs = true
-local lootRadius = 60
+local lootRadius = 20
 local addNewSales = true
 local debugLoot = false
 
@@ -159,15 +159,21 @@ local function lootCorpse(corpseID)
     if debugLoot then print('Enter lootCorpse') end
     if mq.TLO.Cursor() then checkCursor() end
     mq.cmd('/loot')
-    mq.delay(3000, function() return mq.TLO.Window('LootWnd').Open() end)
+    mq.delay(3000, function() return mq.TLO.Window('LootWnd') end)
+    --mq.delay(3000, function() return mq.TLO.Window('LootWnd').Open() end)
     mq.doevents('CantLoot')
-    mq.delay(3000, function() return cantLootID > 0 or mq.TLO.Window('LootWnd').Open() end)
-    if not mq.TLO.Window('LootWnd').Open() then
+    mq.delay(3000, function() return cantLootID > 0 or mq.TLO.Window('LootWnd') end)
+    --mq.delay(3000, function() return cantLootID > 0 or mq.TLO.Window('LootWnd').Open() end)
+    --if not mq.TLO.Window('LootWnd').Open() then
+    if not mq.TLO.Window('LootWnd') then
         print(('Can\'t loot %s right now'):format(mq.TLO.Target.CleanName()))
         cantLootList[corpseID] = os.time()
         return
     end
-    mq.delay(3000, function() return mq.TLO.Corpse.Items() and mq.TLO.Corpse.Items() > 0 end)
+    print('before delay')
+    --mq.delay(3000, function() return mq.TLO.Corpse.Items() and mq.TLO.Corpse.Items() > 0 end)
+    mq.delay(3000, function() return mq.TLO.Corpse.Items() > 0 end)
+    print('after delay')
     if debugLoot then print(('Loot window open. Items: %d'):format(mq.TLO.Corpse.Items())) end
     if mq.TLO.Window('LootWnd').Open() and mq.TLO.Corpse.Items() > 0 then
         for i=1,mq.TLO.Corpse.Items() do
@@ -355,6 +361,7 @@ end
 setupEvents()
 setupBinds()
 
+lootMobs()
 return {
     lootMobs=lootMobs,
     sellStuff=sellStuff,
