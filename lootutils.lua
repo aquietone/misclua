@@ -274,11 +274,11 @@ local function sellToVendor(itemToSell)
         if mq.TLO.Window('MerchantWnd').Open() then
             print('Selling '..itemToSell)
             mq.cmdf('/nomodkey /itemnotify "%s" leftmouseup', itemToSell)
-            mq.delay(50)
+            mq.delay(1000, function() return mq.TLO.Window('MerchantWnd/MW_SelectedItemLabel').Text() == itemToSell end)
             mq.cmd('/nomodkey /shiftkey /notify merchantwnd MW_Sell_Button leftmouseup')
             mq.doevents()
             -- TODO: handle vendor not wanting item / item can't be sold
-            mq.delay(50)
+            mq.delay(1000, function() return mq.TLO.Window('MerchantWnd/MW_SelectedItemLabel').Text() == '' end)
         end
     end
 end
