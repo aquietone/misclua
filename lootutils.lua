@@ -159,15 +159,15 @@ local function lootCorpse(corpseID)
     if debugLoot then print('Enter lootCorpse') end
     if mq.TLO.Cursor() then checkCursor() end
     mq.cmd('/loot')
-    mq.delay(3000, function() return mq.TLO.Window('LootWnd')() end)
+    mq.delay(3000, function() return mq.TLO.Window('LootWnd').Open() end)
     mq.doevents('CantLoot')
-    mq.delay(3000, function() return cantLootID > 0 or mq.TLO.Window('LootWnd')() end)
-    if not mq.TLO.Window('LootWnd')() then
+    mq.delay(3000, function() return cantLootID > 0 or mq.TLO.Window('LootWnd').Open() end)
+    if not mq.TLO.Window('LootWnd').Open() then
         print(('Can\'t loot %s right now'):format(mq.TLO.Target.CleanName()))
         cantLootList[corpseID] = os.time()
         return
     end
-    mq.delay(3000, function() return mq.TLO.Corpse.Items() > 0 end)
+    mq.delay(3000, function() return mq.TLO.Corpse.Items() and mq.TLO.Corpse.Items() > 0 end)
     if debugLoot then print(('Loot window open. Items: %d'):format(mq.TLO.Corpse.Items())) end
     if mq.TLO.Window('LootWnd').Open() and mq.TLO.Corpse.Items() > 0 then
         for i=1,mq.TLO.Corpse.Items() do
@@ -201,14 +201,14 @@ local spawnSearch = '%s radius %d zradius 50'
 lootMobs = function()
     if debugLoot then print('enter lootMobs') end
     if not shouldLootMobs then return end
-    local deadCount = mq.TLO.SpawnCount(spawnSearch:format('corpse', lootRadius))()
+    local deadCount = mq.TLO.SpawnCount(spawnSearch:format('npccorpse', lootRadius))()
     if debugLoot then print(string.format('There are %s corpses in range.', deadCount)) end
     local mobsNearby = mq.TLO.SpawnCount(spawnSearch:format('npc', lootRadius))()
     -- options for combat looting or looting disabled
     if deadCount == 0 or mobsNearby > 0 or mq.TLO.Me.Combat() or mq.TLO.Me.FreeInventory() == 0 then return end
     local corpseList = {}
     for i=1,deadCount do
-        local corpse = mq.TLO.NearestSpawn(('%d,'..spawnSearch):format(i, 'corpse', lootRadius))
+        local corpse = mq.TLO.NearestSpawn(('%d,'..spawnSearch):format(i, 'npccorpse', lootRadius))
         table.insert(corpseList, corpse)
         -- why is there a deity check?
     end
