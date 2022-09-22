@@ -5,13 +5,19 @@ local LIP = require 'lib.LIP'
 local lootFile = mq.configDir .. '/Loot.ini'
 local lootData = LIP.load(lootFile)
 local shouldLootMobs = true
-local lootRadius = 30
+local lootRadius = 60
 local addNewSales = true
 local debugLoot = false
 
 local keepActions = {Keep=true, Sell=true}
 local destroyActions = {Destroy=true, Ignore=true}
 local vendorTypes = {NPC=true,PET=true}
+local validActions = {keep='Keep',sell='Sell',ignore='Ignore',destroy='Destroy'}
+
+-- FORWARD DECLARATIONS
+
+local eventForage, eventSell, eventCantLoot
+local sellStuff, lootMobs
 
 -- CONFIGURATION
 
@@ -95,7 +101,6 @@ local function eventInventoryFull()
     shouldLootMobs = false
 end
 
-local eventForage, eventSell, eventCantLoot
 local function setupEvents()
     mq.event("CantLoot", "#*#may not loot this corpse#*#", eventCantLoot)
     mq.event("InventoryFull", "#*#Your inventory appears full!#*#", eventInventoryFull)
@@ -104,6 +109,29 @@ local function setupEvents()
     mq.event("Forage", "You have scrounged up #*#", eventForage)
     --[[mq.event("Novalue", "#*#give you absolutely nothing for the #1#.#*#", eventHandler)
     mq.event("Lore", "#*#You cannot loot this Lore Item.#*#", eventHandler)]]--
+end
+
+-- BINDS
+
+local function commandHandler(...)
+    local args = {...}
+    if #args == 1 then
+        if args[1] == 'sell' then
+            sellStuff()
+        end
+    elseif #args == 2 then
+        if validActions[args[1]] then
+            addRule(args[2], args[2]:sub(1,1), validActions[args[1]])
+        end
+    elseif #args == 3 then
+        if args[1] == 'quest' then
+            addRule(args[2], args[2]:sub(1,1), 'Quest|'..args[3])
+        end
+    end
+end
+
+local function setupBinds()
+    mq.bind('/lootutils', commandHandler)
 end
 
 -- LOOTING
@@ -170,7 +198,7 @@ local function corpseLocked(corpseID)
 end
 
 local spawnSearch = '%s radius %d zradius 50'
-local function lootMobs()
+lootMobs = function()
     if debugLoot then print('enter lootMobs') end
     if not shouldLootMobs then return end
     local deadCount = mq.TLO.SpawnCount(spawnSearch:format('corpse', lootRadius))()
@@ -255,7 +283,7 @@ local function sellToVendor(itemToSell)
     end
 end
 
-local function sellStuff()
+sellStuff = function()
     if not goToVendor() then return end
     if not openVendor() then return end
     -- sell any top level inventory items that are marked as well, which aren't bags
@@ -311,7 +339,7 @@ eventForage = function()
             end
         -- will a lore item we already have even show up on cursor?
         -- free inventory check won't cover an item too big for any container so may need some extra check related to that?
-        elseif (keepActions[ruleAction] or currentItemAmount < ruleAmount) and (!cursorItem.Lore() or currentItemAmount == 0) and (mq.TLO.Me.FreeInventory() or (cursorItem.Stackable() and cursorItem.FreeStack())) then
+        elseif (keepActions[ruleAction] or currentItemAmount < ruleAmount) and (not cursorItem.Lore() or currentItemAmount == 0) and (mq.TLO.Me.FreeInventory() or (cursorItem.Stackable() and cursorItem.FreeStack())) then
             print('Keeping foraged item '..foragedItem)
             mq.cmd('/autoinv')
         else
@@ -325,6 +353,7 @@ end
 --
 
 setupEvents()
+setupBinds()
 
 return {
     lootMobs=lootMobs,
