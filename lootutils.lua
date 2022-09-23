@@ -15,6 +15,9 @@ Usage: Include this somewhere in your automation with:
     ...
     lootutils.lootMobs()
 
+Optionally, setup your own bind for selling items which calls:
+    lootutils.sellStuff()
+
 Optionally, configure settings using:
     Set the radius within which corpses should be looted (radius from you, not a camp location)
         lootutils.radius = number
@@ -60,7 +63,6 @@ local validActions = {keep='Keep',sell='Sell',ignore='Ignore',destroy='Destroy'}
 -- FORWARD DECLARATIONS
 
 local eventForage, eventSell, eventCantLoot
-local sellStuff, lootMobs
 
 -- UTILITIES
 
@@ -150,11 +152,11 @@ end
 
 local function commandHandler(...)
     local args = {...}
-    if #args == 1 then
-        if args[1] == 'sell' then
-            sellStuff()
-        end
-    elseif #args == 2 then
+    --if #args == 1 then
+    --    if args[1] == 'sell' then
+    --        loot.sellStuff()
+    --    end
+    if #args == 2 then
         if validActions[args[1]] then
             addRule(args[2], args[2]:sub(1,1), validActions[args[1]])
         end
