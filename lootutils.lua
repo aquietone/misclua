@@ -15,8 +15,13 @@ Usage: Include this somewhere in your automation with:
     ...
     lootutils.lootMobs()
 
-Optionally, setup your own bind for selling items which calls:
+This script also exports a function, sellStuff, which can be called from your main automation:
     lootutils.sellStuff()
+
+    To use this, one way may be to setup a bind which sets some flag, like doSell=true, which then
+    triggers your main loop to call lootutils.sellStuff().
+
+    The sellStuff routine can take some time and is best not to be called directly from a bind callback.
 
 Optionally, configure settings using:
     Set the radius within which corpses should be looted (radius from you, not a camp location)
@@ -27,8 +32,6 @@ Optionally, configure settings using:
         lootutils.logger = Write
 
 Similar binds are included to ninjadvloot:
-    /lootutils sell   - Run with a vendor targeted and it will attempt to sell any items marked Sell
-                        in your loot.ini
     /lootutils [action] "${Cursor.Name}" - Set the loot rule for an item. Options:
                                             Keep, Sell, Ignore, Destroy, Quest|#
 
