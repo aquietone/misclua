@@ -29,8 +29,11 @@ local function processInput(input)
         if type(result) == 'function' then
             success, result = pcall(result)
             if success then
-                local typeSuccess, mqtype = pcall(mq.gettype, result)
-                return result, type(result), typeSuccess and tostring(mqtype) or ''
+                local mqtype = nil
+                if type(result) == 'userdata' then
+                    mqtype = pcall(mq.gettype, result)
+                end
+                return result, type(result), mqtype and mqtype or ''
             end
         end
     end
@@ -50,17 +53,17 @@ local  function handleEvalEntry(input)
     ImGui.TextColored(0,1,1,1,'Output:')
     ImGui.SameLine()
     ImGui.SetCursorPosX(60)
-    ImGui.Text(tostring(output))
+    ImGui.Text("%s", output)
     ImGui.TextColored(0,1,1,1,'Type:')
     ImGui.SameLine()
     ImGui.SetCursorPosX(60)
-    ImGui.Text(outputType)
+    ImGui.Text("%s", outputType)
     ImGui.SameLine()
     ImGui.SetCursorPosX(140)
     ImGui.TextColored(0,1,1,1,'MQType:')
     ImGui.SameLine()
     ImGui.SetCursorPosX(200)
-    ImGui.Text(mqType)
+    ImGui.Text("%s", mqType)
 end
 
 local evalui = function()
