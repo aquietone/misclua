@@ -24,6 +24,12 @@ Like the macro expression evaluator, but for displaying lua parse values. I don'
 
 ![](images/eval.png)
 
+# find
+
+Like the find item window from live, but for emu since it doesn't have one. It will error if you put funny characters in the filter that are also string pattern characters like `[`. It only shows items in bags, inventory slots, bank and shared bank. It doesn't show augs in items.
+
+![](images/find.png)
+
 # uisample
 
 A very simplistic UI script to just create a single empty ImGui window.
