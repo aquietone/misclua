@@ -30,6 +30,12 @@ Like the find item window from live, but for emu since it doesn't have one. It w
 
 ![](images/find.png)
 
+# search
+
+A UI for searching for items across your DanNet peers
+
+![](images/search.png)
+
 # uisample
 
 A very simplistic UI script to just create a single empty ImGui window.
