@@ -1,3 +1,4 @@
+-- Based on Colds Big Bag from RedGuides
 --- @type Mq
 local mq = require("mq")
 
