@@ -113,6 +113,11 @@ local function create_inventory()
             local slot = mq.TLO.InvSlot(i).Item
             if slot.ID() ~= nil then
                 table.insert(items, {item=slot,invslot=i})
+                for j=1,8 do
+                    if slot.AugSlot(j)() then
+                        table.insert(items, {item=slot.AugSlot(j).Item, invslot=i, augslot=j})
+                    end
+                end
             end
         end
         sort_inventory()
@@ -182,7 +187,8 @@ end
 
 -- Helper to create a unique hidden label for each button.  The uniqueness is
 -- necessary for drag and drop to work correctly.
-local function btn_label(itemSlot, itemSlot2, inBank, inSharedBank, invslot)
+local function btn_label(itemSlot, itemSlot2, inBank, inSharedBank, invslot, augslot)
+    if augslot then return string.format('##augslot_%s_%s', invslot, augslot) end
     if invslot then return string.format("##invslot_%s", invslot) end
     local container = 'slot'
     if inBank then container = 'bank' end
@@ -194,7 +200,8 @@ local function btn_label(itemSlot, itemSlot2, inBank, inSharedBank, invslot)
     end
 end
 
-local function get_item_location(itemSlot, itemSlot2, inBank, inSharedBank, invslot)
+local function get_item_location(itemSlot, itemSlot2, inBank, inSharedBank, invslot, augslot)
+    if augslot then return invslots[invslot+1] .. ' aug ' .. augslot end
     if invslot then return invslots[invslot+1] end
     if itemSlot2 == -1 then
         local prefix = ''
@@ -212,7 +219,7 @@ local function draw_item_row(item)
     local itemSlot = item.item.ItemSlot()
     local itemSlot2 = item.item.ItemSlot2()
     local stack = item.item.Stack()
-    local label = btn_label(itemSlot, itemSlot2, item.bank, item.sharedbank, item.invslot)
+    local label = btn_label(itemSlot, itemSlot2, item.bank, item.sharedbank, item.invslot, item.augslot)
 
     if ImGui.Checkbox(label..'checkbox', selectedItems[label] ~= nil) then
         selectedItems[label] = item.item
@@ -234,8 +241,8 @@ local function draw_item_row(item)
     local selected = ImGui.Selectable(label, false, ImGuiSelectableFlags.SpanAllColumns)
     ImGui.PopStyleColor(3)
 
-    local itemLocation = get_item_location(itemSlot, itemSlot2, item.bank, item.sharedbank, item.invslot)
-    if (not (item.bank or item.sharedbank) or mq.TLO.Window('BigBankWnd').Open()) then
+    local itemLocation = get_item_location(itemSlot, itemSlot2, item.bank, item.sharedbank, item.invslot, item.augslot)
+    if not item.augslot and (not (item.bank or item.sharedbank) or mq.TLO.Window('BigBankWnd').Open()) then
         if selected then
             mq.cmdf("/nomodkey /shiftkey /itemnotify %s leftmouseup", itemLocation)
             forceRefresh = true
