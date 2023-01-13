@@ -194,7 +194,7 @@ local function checkCursor()
         -- can't do anything if there's nowhere to put the item, either due to no free inventory space
         -- or no slot of appropriate size
         if mq.TLO.Me.FreeInventory() == 0 or mq.TLO.Cursor() == currentItem then
-            shouldLootMobs = false
+            mq.cmd('/autoinv')
             return
         end
         currentItem = mq.TLO.Cursor()
@@ -290,12 +290,12 @@ local function commandHandler(...)
             loot.markTradeSkillAsBank()
         end
     elseif #args == 2 then
-        if validActions[args[1]] then
+        if validActions[args[1]] and args[2] ~= 'NULL' then
             addRule(args[2], args[2]:sub(1,1), validActions[args[1]])
             loot.logger.Info(string.format("Setting \ay%s\ax to \ay%s\ax", args[2], validActions[args[1]]))
         end
     elseif #args == 3 then
-        if args[1] == 'quest' then
+        if args[1] == 'quest' and args[2] ~= 'NULL' then
             addRule(args[2], args[2]:sub(1,1), 'Quest|'..args[3])
             loot.logger.Info(string.format("Setting \ay%s\ax to \ayQuest|%s\ax", args[2], args[3]))
         end
@@ -320,7 +320,7 @@ local function lootItem(index, doWhat, button)
     mq.cmdf('/nomodkey /shift /itemnotify loot%s %s', index, button)
     mq.delay(5000, function() return mq.TLO.Window('ConfirmationDialogBox').Open() or not mq.TLO.Corpse.Item(index).NoDrop() end)
     if mq.TLO.Window('ConfirmationDialogBox').Open() then mq.cmd('/nomodkey /notify ConfirmationDialogBox Yes_Button leftmouseup') end
-    mq.delay(5000, function() return mq.TLO.Cursor() or not mq.TLO.Window('LootWnd').Open() end)
+    mq.delay(5000, function() return mq.TLO.Cursor() ~= nil or not mq.TLO.Window('LootWnd').Open() end)
     mq.delay(100)
     if not mq.TLO.Window('LootWnd').Open() then return end
     if loot.ReportLoot then mq.cmdf('/%s \a-t[\ax\aylootutils\ax\a-t]\ax %sing \ay%s\ax', loot.LootChannel, doWhat, itemName) end
@@ -340,20 +340,27 @@ local function lootCorpse(corpseID)
         cantLootList[corpseID] = os.time()
         return
     end
-    mq.delay(1000, function() return mq.TLO.Corpse.Items() and mq.TLO.Corpse.Items() > 0 end)
-    loot.logger.Debug(('Loot window open. Items: %s'):format(mq.TLO.Corpse.Items()))
-    if mq.TLO.Window('LootWnd').Open() and mq.TLO.Corpse.Items() > 0 then
-        for i=1,mq.TLO.Corpse.Items() do
+    mq.delay(1000, function() return (mq.TLO.Corpse.Items() or 0) > 0 end)
+    local items = mq.TLO.Corpse.Items() or 0
+    loot.logger.Debug(('Loot window open. Items: %s'):format(items))
+    if mq.TLO.Window('LootWnd').Open() and items > 0 then
+        for i=1,items do
+            local freeSpace = mq.TLO.Me.FreeInventory()
             local corpseItem = mq.TLO.Corpse.Item(i)
-            if corpseItem() and not corpseItem.Lore() then
+            local stackable = corpseItem.Stackable()
+            local freeStack = corpseItem.FreeStack()
+            if corpseItem() and not corpseItem.Lore() and (freeSpace > 0 or (stackable and freeStack > 0)) then
                 lootItem(i, getRule(corpseItem), 'leftmouseup')
             end
             if not mq.TLO.Window('LootWnd').Open() then break end
         end
-        for i=1,mq.TLO.Corpse.Items() do
+        for i=1,items do
+            local freeSpace = mq.TLO.Me.FreeInventory()
             local corpseItem = mq.TLO.Corpse.Item(i)
             if corpseItem() then
-                if corpseItem.Lore() and mq.TLO.FindItem(('=%s'):format(corpseItem.Name()))() then
+                local haveItem = mq.TLO.FindItem(('=%s'):format(corpseItem.Name()))()
+                local haveItemBank = mq.TLO.FindItemBank(('=%s'):format(corpseItem.Name()))()
+                if (corpseItem.Lore() and (haveItem or haveItemBank)) or freeSpace == 0 then
                     loot.logger.Warn('Cannot loot lore item')
                 else
                     lootItem(i, getRule(corpseItem), 'leftmouseup')
@@ -382,13 +389,13 @@ end
 
 loot.lootMobs = function(limit)
     loot.logger.Debug('Enter lootMobs')
-    if mq.TLO.Me.FreeInventory() > 0 then shouldLootMobs = true end
-    if not shouldLootMobs then return false end
+    --if mq.TLO.Me.FreeInventory() > 0 then shouldLootMobs = true end
+    --if not shouldLootMobs then return false end
     local deadCount = mq.TLO.SpawnCount(spawnSearch:format('npccorpse', loot.CorpseRadius))()
     loot.logger.Debug(string.format('There are %s corpses in range.', deadCount))
     local mobsNearby = mq.TLO.SpawnCount(spawnSearch:format('xtarhater', loot.MobsTooClose))()
     -- options for combat looting or looting disabled
-    if deadCount == 0 or mobsNearby > 0 or mq.TLO.Me.Combat() or mq.TLO.Me.FreeInventory() == 0 then return false end
+    if deadCount == 0 or mobsNearby > 0 or mq.TLO.Me.Combat() then return false end
     local corpseList = {}
     for i=1,math.max(deadCount, limit or 0) do
         local corpse = mq.TLO.NearestSpawn(('%d,'..spawnSearch):format(i, 'npccorpse', loot.CorpseRadius))
@@ -400,15 +407,14 @@ loot.lootMobs = function(limit)
     for i=1,#corpseList do
         local corpse = corpseList[i]
         local corpseID = corpse.ID()
-        if corpseID and corpseID > 0 and not corpseLocked(corpseID) then
+        if corpseID and corpseID > 0 and not corpseLocked(corpseID) and (mq.TLO.Navigation.PathLength('spawn id '..tostring(corpseID))() or 100) < 60 then
             loot.logger.Debug('Moving to corpse ID='..tostring(corpseID))
             navToID(corpseID)
             corpse.DoTarget()
             mq.delay(100, function() return mq.TLO.Target.ID() == corpseID end)
             lootCorpse(corpseID)
             didLoot = true
-            mq.doevents()
-            if not shouldLootMobs then break end
+            mq.doevents('InventoryFull')
         end
     end
     loot.logger.Debug('Done with corpse list.')
@@ -452,7 +458,9 @@ local function openVendor()
     return mq.TLO.Merchant.ItemsReceived()
 end
 
+local NEVER_SELL = {['Diamond Coin']=true, ['Celestial Crest']=true, ['Gold Coin']=true, ['Taelosian Symbols']=true, ['Planar Symbols']=true}
 local function sellToVendor(itemToSell)
+    if NEVER_SELL[itemToSell] then return end
     while mq.TLO.FindItemCount('='..itemToSell)() > 0 do
         if mq.TLO.Window('MerchantWnd').Open() then
             loot.logger.Info('Selling '..itemToSell)
@@ -477,6 +485,7 @@ loot.sellStuff = function()
         if not openVendor() then return end
     end
 
+    local totalPlat = mq.TLO.Me.Platinum()
     -- sell any top level inventory items that are marked as well, which aren't bags
     for i=1,10 do
         local bagSlot = mq.TLO.InvSlot('pack'..i).Item
@@ -511,6 +520,8 @@ loot.sellStuff = function()
     end
     mq.flushevents('Sell')
     if mq.TLO.Window('MerchantWnd').Open() then mq.cmd('/nomodkey /notify MerchantWnd MW_Done_Button leftmouseup') end
+    local newTotalPlat = mq.TLO.Me.Platinum() - totalPlat
+    loot.logger.Info(string.format('Total plat value sold: \ag%s\ax', newTotalPlat))
 end
 
 -- BANKING
