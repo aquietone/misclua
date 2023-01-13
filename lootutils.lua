@@ -108,10 +108,10 @@ EQ item names. Any INI entry which doesn't match the regex is just skipped over 
 
 ---@type Mq
 local mq = require 'mq'
-local _, LIP = pcall(require, 'lib.LIP')
-if not LIP then print('\arERROR: LIP.lua could not be loaded\ax') return end
-local _, Write = pcall(require, 'lib.Write')
-if not Write then print('\arERROR: Write.lua could not be loaded\ax') return end
+local success, LIP = pcall(require, 'lib.LIP')
+if not success then printf('\arERROR: LIP.lua could not be loaded\n%s\ax', LIP) return end
+local success, Write = pcall(require, 'lib.Write')
+if not success then printf('\arERROR: Write.lua could not be loaded\n%s\ax', Write) return end
 
 -- Public default settings, also read in from Loot.ini [Settings] section
 local loot = {
@@ -265,7 +265,7 @@ local function setupEvents()
     mq.event("CantLoot", "#*#may not loot this corpse#*#", eventCantLoot)
     mq.event("InventoryFull", "#*#Your inventory appears full!#*#", eventInventoryFull)
     mq.event("Sell", "#*#You receive#*# for the #1#(s)#*#", eventSell)
-    mq.event("Forage", "Your forage mastery has enabled you to find something else!", eventForage)
+    mq.event("ForageExtras", "Your forage mastery has enabled you to find something else!", eventForage)
     mq.event("Forage", "You have scrounged up #*#", eventForage)
     mq.event("Novalue", "#*#give you absolutely nothing for the #1#.#*#", eventNovalue)
     --[[mq.event("Lore", "#*#You cannot loot this Lore Item.#*#", eventHandler)]]--
@@ -634,6 +634,9 @@ local function init(args)
         writeSettings()
     end
     lootData = LIP.load(loot.LootFile)
+    if not lootData.Settings then
+        writeSettings()
+    end
     for option, value in pairs(lootData.Settings) do
         loot[option] = value
     end
