@@ -200,6 +200,7 @@ local function drawItemRow(item)
     local itemSlot = item.item.ItemSlot()
     local itemSlot2 = item.item.ItemSlot2()
     local stack = item.item.Stack()
+    if not (itemName and itemIcon and itemSlot and itemSlot2 and stack) then return end
     local label = buttonLabel(itemSlot, itemSlot2, item.bank, item.sharedbank, item.invslot, item.augslot)
 
     -- Reset the cursor to start position, then fetch and draw the item icon
