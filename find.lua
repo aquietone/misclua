@@ -26,21 +26,20 @@ local filteredItems = {}
 -- Filter options
 
 local startTime = os.time()
-local filterText = ""
-local filterChanged = true
 local forceRefresh = false
 
+local filterChanged = true
+local filterText = ""
 local slotFilter = 'none'
-local slotFilterChanged = false
-
 local typeFilter = 'none'
-local typeFilterChanged = false
+local locationFilter = 'all'
 
 local doSort = true
 
 local invslots = {'charm','leftear','head','face','rightear','neck','shoulder','arms','back','leftwrist','rightwrist','ranged','hands','mainhand','offhand','leftfinger','rightfinger','chest','legs','feet','waist','powersource','ammo'}
 local invslotfilters = {'none','charm','ears','head','face','neck','shoulder','arms','back','wrists','ranged','hands','mainhand','offhand','fingers','chest','legs','feet','waist','powersource','ammo'}
-local itemtypes = {'none','Armor','weapon','Augmentation','container','Food','Drink','Combinable'}
+local itemtypefilters = {'none','Armor','weapon','Augmentation','container','Food','Drink','Combinable'}
+local locationfilters = {'all','on person','bank'}
 
 -- The beast - this routine is what builds our inventory.
 local function createInventory()
@@ -48,8 +47,6 @@ local function createInventory()
         startTime = os.time()
         forceRefresh = false
         filterChanged = true
-        slotFilterChanged = true
-        typeFilterChanged = true
         items = {}
         for i = 23, 34, 1 do
             local slot = mq.TLO.Me.Inventory(i)
@@ -131,39 +128,39 @@ local function displayBagUtilities()
     if ImGui.SmallButton("AutoInventory") then mq.cmd('/autoinv') end
 end
 
+local function drawFilterMenu(label, filter, filterOptions)
+    if ImGui.BeginCombo(label, filter) then
+        for _,option in ipairs(filterOptions) do
+            if ImGui.Selectable(option, option == filter) then
+                if filter ~= option then
+                    ImGui.EndCombo()
+                    return option, true
+                end
+            end
+        end
+        ImGui.EndCombo()
+    end
+    return filter, false
+end
+
 local function displayMenus()
     if not ImGui.CollapsingHeader("Search Options") then
         return
     end
     if ImGui.Button('Clear Selections') then
         slotFilter = 'none'
-        slotFilterChanged = true
         typeFilter = 'none'
-        typeFilterChanged = true
+        locationFilter = 'all'
+        filterChanged = true
     end
     ImGui.PushItemWidth(100)
-    if ImGui.BeginCombo('Slot Type', slotFilter) then
-        for _,j in ipairs(invslotfilters) do
-            if ImGui.Selectable(j, j == slotFilter) then
-                if slotFilter ~= j then
-                    slotFilter = j
-                    slotFilterChanged = true
-                end
-            end
-        end
-        ImGui.EndCombo()
-    end
-    if ImGui.BeginCombo('Item Type', typeFilter) then
-        for _,j in ipairs(itemtypes) do
-            if ImGui.Selectable(j, j == typeFilter) then
-                if typeFilter ~= j then
-                    typeFilter = j
-                    typeFilterChanged = true
-                end
-            end
-        end
-        ImGui.EndCombo()
-    end
+    local tempFilterChanged = false
+    slotFilter, tempFilterChanged = drawFilterMenu('Slot Type', slotFilter, invslotfilters)
+    filterChanged = filterChanged or tempFilterChanged
+    typeFilter, tempFilterChanged = drawFilterMenu('Item Type', typeFilter, itemtypefilters)
+    filterChanged = filterChanged or tempFilterChanged
+    locationFilter, tempFilterChanged = drawFilterMenu('Location', locationFilter, locationfilters)
+    filterChanged = filterChanged or tempFilterChanged
     ImGui.PopItemWidth()
 end
 
@@ -325,37 +322,39 @@ local function applyTypeFilter(item)
             item.item.Type() == typeFilter
 end
 
+local function applyLocationFilter(item)
+    return (locationFilter == 'on person' and not (item.bank or item.sharedbank)) or
+            (locationFilter == 'bank' and (item.bank or item.sharedbank))
+end
+
 local function filterItems()
-    if filterChanged or slotFilterChanged or typeFilterChanged then
+    if filterChanged then
         filteredItems = {}
+
         local filterFunction = nil
-        if filterText ~= '' and slotFilter ~= 'none' and typeFilter ~= 'none' then
-            filterFunction = function(item) return applyTextFilter(item) and applySlotFilter(item) and applyTypeFilter(item) end
-        elseif filterText ~= '' and slotFilter ~= 'none' then
-            filterFunction = function(item) return applyTextFilter(item) and applySlotFilter(item) end
-        elseif filterText ~= '' then
-            filterFunction = function(item) return applyTextFilter(item) end
-        elseif filterText ~= '' and typeFilter ~= 'none' then
-            filterFunction = function(item) return applyTextFilter(item) and applyTypeFilter(item) end
-        elseif slotFilter ~= 'none' and typeFilter ~= 'none' then
-            filterFunction = function(item) return applySlotFilter(item) and applyTypeFilter(item) end
-        elseif slotFilter ~= 'none' then
-            filterFunction = function(item) return applySlotFilter(item) end
-        elseif typeFilter ~= 'none' then
-            filterFunction = function(item) return applyTypeFilter(item) end
-        else
-            filteredItems = items
-        end
-        if filterFunction then
+        local filterFuncs = {}
+        if filterText ~= '' then table.insert(filterFuncs, applyTextFilter) end
+        if slotFilter ~= 'none' then table.insert(filterFuncs, applySlotFilter) end
+        if typeFilter ~= 'none' then table.insert(filterFuncs, applyTypeFilter) end
+        if locationFilter ~= 'all' then table.insert(filterFuncs, applyLocationFilter) end
+
+        if #filterFuncs > 0 then
+            filterFunction = function(item)
+                for _,func in ipairs(filterFuncs) do
+                    if not func(item) then return false end
+                end
+                return true
+            end
             for i,item in ipairs(items) do
                 if filterFunction(item) then
                     table.insert(filteredItems, item)
                 end
             end
+        else
+            filteredItems = items
         end
+
         filterChanged = false
-        slotFilterChanged = false
-        typeFilterChanged = false
         doSort = true
     end
 end
