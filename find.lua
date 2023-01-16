@@ -217,7 +217,7 @@ local function drawItemRow(item)
 
     local itemLocation = getItemLocation(itemSlot, itemSlot2, item.bank, item.sharedbank, item.invslot, item.augslot)
     if not item.augslot and (not (item.bank or item.sharedbank) or mq.TLO.Window('BigBankWnd').Open()) then
-        if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Left) then
+        if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Left) and not mq.TLO.Cursor() then
             mq.cmdf("/nomodkey /shiftkey /itemnotify %s leftmouseup", itemLocation)
             forceRefresh = true
         end
