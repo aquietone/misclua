@@ -59,6 +59,7 @@ local function createInventory()
         startTime = os.time()
         forceRefresh = false
         filterChanged = true
+        searchChanged = true
         items = {}
         for i = 23, 34, 1 do
             local slot = mq.TLO.Me.Inventory(i)
@@ -145,6 +146,10 @@ local function displayBagUtilities()
     if ImGui.SmallButton("Clear") then filterText = "" filterChanged = true end
     ImGui.SameLine()
     if ImGui.SmallButton("AutoInventory") then mq.cmd('/autoinv') end
+    if usingDanNet then
+        ImGui.SameLine()
+        if ImGui.SmallButton("Search Toons") then openSearchGUI = true end
+    end
 end
 
 local function drawFilterMenu(label, filter, filterOptions)
@@ -495,6 +500,30 @@ local function drawSearchItemRow(item)
     ImGui.TableNextColumn()
 end
 
+-- Displays static utilities that always show at the top of the UI
+local function displaySearchOptions()
+    ImGui.PushItemWidth(200)
+    local text, selected = ImGui.InputText("Search", searchText)
+    ImGui.PopItemWidth()
+    if selected and searchText ~= text then
+        searchText = text
+        searchChanged = true
+    end
+    ImGui.SameLine()
+    if ImGui.SmallButton("Clear") then 
+        searchText = ""
+        searchChanged = true
+        searchResults = {}
+        searchUpdateResults = true    
+    end
+    ImGui.SameLine()
+    local newShouldSearchBank = ImGui.Checkbox('Search Bank', shouldSearchBank)
+    if newShouldSearchBank ~= shouldSearchBank then
+        searchChanged = true
+        shouldSearchBank = newShouldSearchBank
+    end
+end
+
 ---Handles the bag layout of individual items
 local function displaySearchContent()
     if ImGui.BeginTable('searchitemtable', 5, TABLE_FLAGS) then
@@ -540,6 +569,7 @@ local function FindGUI()
         if not openSearchGUI then return end
         openSearchGUI, shouldDrawSearchGUI = ImGui.Begin(string.format("Search Window"), openGUI, ImGuiWindowFlags.NoScrollbar)
         if shouldDrawSearchGUI then
+            displaySearchOptions()
             displaySearchContent()
         end
         ImGui.End()
