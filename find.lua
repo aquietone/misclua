@@ -394,14 +394,14 @@ local function displayBagContent()
         local sort_specs = ImGui.TableGetSortSpecs()
         if sort_specs then
             if sort_specs.SpecsDirty or doSort then
-                print(string.format('Sort %d items:', #filteredItems))
-                for n = 1, sort_specs.SpecsCount, 1 do
+                --print(string.format('Sort %d items:', #filteredItems))
+                --for n = 1, sort_specs.SpecsCount, 1 do
                     -- Here we identify columns using the ColumnUserID value that we ourselves passed to TableSetupColumn()
                     -- We could also choose to identify columns based on their index (sort_spec.ColumnIndex), which is simpler!
-                    local sort_spec = sort_specs:Specs(n)
-                    print(string.format('  Spec=%d ColumnUserID ColumnIndex=%d SortOrder=%d SortDirection=%d',
-                        n, sort_spec.ColumnUserID, sort_spec.ColumnIndex, sort_spec.SortOrder, sort_spec.SortDirection))
-                end
+                    --local sort_spec = sort_specs:Specs(n)
+                    --print(string.format('  Spec=%d ColumnUserID ColumnIndex=%d SortOrder=%d SortDirection=%d',
+                    --    n, sort_spec.ColumnUserID, sort_spec.ColumnIndex, sort_spec.SortOrder, sort_spec.SortDirection))
+                --end
 
                 if #filteredItems > 1 then
                     current_sort_specs = sort_specs
