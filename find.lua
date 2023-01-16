@@ -120,6 +120,9 @@ local function displayBagUtilities()
     ImGui.PopItemWidth()
     if selected and filterText ~= text then
         filterText = text
+        slotFilter = 'none'
+        typeFilter = 'none'
+        locationFilter = 'all'
         filterChanged = true
     end
     ImGui.SameLine()
@@ -144,21 +147,14 @@ local function drawFilterMenu(label, filter, filterOptions)
 end
 
 local function displayMenus()
-    if not ImGui.CollapsingHeader("Search Options") then
-        return
-    end
-    if ImGui.Button('Clear Selections') then
-        slotFilter = 'none'
-        typeFilter = 'none'
-        locationFilter = 'all'
-        filterChanged = true
-    end
     ImGui.PushItemWidth(100)
     local tempFilterChanged = false
     slotFilter, tempFilterChanged = drawFilterMenu('Slot Type', slotFilter, invslotfilters)
     filterChanged = filterChanged or tempFilterChanged
+    ImGui.SameLine()
     typeFilter, tempFilterChanged = drawFilterMenu('Item Type', typeFilter, itemtypefilters)
     filterChanged = filterChanged or tempFilterChanged
+    ImGui.SameLine()
     locationFilter, tempFilterChanged = drawFilterMenu('Location', locationFilter, locationfilters)
     filterChanged = filterChanged or tempFilterChanged
     ImGui.PopItemWidth()
