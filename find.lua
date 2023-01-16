@@ -36,10 +36,11 @@ local slotFilterChanged = false
 local typeFilter = 'none'
 local typeFilterChanged = false
 
-local doSort = false
+local doSort = true
 
-local invslots = {'charm','leftear','head','face','rightear','neck','shoulder','arms','back','leftwrist','rightwrist','ranged','hands','mainhand','offhand','leftfinger','rightfinger','chest','legs','feet','waist','powersource','ammo','none'}
-local itemtypes = {'Armor','weapon','container','Food','Drink','Combinable','none'}
+local invslots = {'charm','leftear','head','face','rightear','neck','shoulder','arms','back','leftwrist','rightwrist','ranged','hands','mainhand','offhand','leftfinger','rightfinger','chest','legs','feet','waist','powersource','ammo'}
+local invslotfilters = {'none','charm','ears','head','face','neck','shoulder','arms','back','wrists','ranged','hands','mainhand','offhand','fingers','chest','legs','feet','waist','powersource','ammo'}
+local itemtypes = {'none','Armor','weapon','Augmentation','container','Food','Drink','Combinable'}
 
 -- The beast - this routine is what builds our inventory.
 local function createInventory()
@@ -48,6 +49,7 @@ local function createInventory()
         forceRefresh = false
         filterChanged = true
         slotFilterChanged = true
+        typeFilterChanged = true
         items = {}
         for i = 23, 34, 1 do
             local slot = mq.TLO.Me.Inventory(i)
@@ -62,7 +64,6 @@ local function createInventory()
                 table.insert(items, {item=slot}) -- We have an item in a bag slot
             end
         end
-        usedSlots = #items
         for i = 1, 24, 1 do
             local slot = mq.TLO.Me.Bank(i)
             if slot.Container() and slot.Container() > 0 then
@@ -142,7 +143,7 @@ local function displayMenus()
     end
     ImGui.PushItemWidth(100)
     if ImGui.BeginCombo('Slot Type', slotFilter) then
-        for _,j in ipairs(invslots) do
+        for _,j in ipairs(invslotfilters) do
             if ImGui.Selectable(j, j == slotFilter) then
                 if slotFilter ~= j then
                     slotFilter = j
@@ -312,8 +313,10 @@ local function applyTextFilter(item)
     return string.match(string.lower(item.item.Name()), string.lower(filterText))
 end
 
+local leftrightslots = {ears='leftear',wrists='leftwrist',fingers='leftfinger'}
 local function applySlotFilter(item)
-    return item.item.WornSlot(slotFilter)()
+    local tempSlotFilter = leftrightslots[slotFilter] or slotFilter
+    return item.item.WornSlot(tempSlotFilter)()
 end
 
 local function applyTypeFilter(item)
@@ -352,6 +355,7 @@ local function filterItems()
         end
         filterChanged = false
         slotFilterChanged = false
+        typeFilterChanged = false
         doSort = true
     end
 end
