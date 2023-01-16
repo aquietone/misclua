@@ -23,10 +23,7 @@ local animBox = mq.FindTextureAnimation("A_RecessedBox")
 local items = {}
 local filteredItems = {}
 
--- Bag Options
-local sortOrder = { name = false, stack = false }
-
--- GUI Activities
+-- Filter options
 
 local startTime = os.time()
 local filterText = ""
@@ -36,33 +33,13 @@ local forceRefresh = false
 local slotFilter = 'none'
 local slotFilterChanged = false
 
-local usedSlots = 0
-local selectedItems = {}
---mq.TLO.FindItem('vadd').WornSlot(1)()
+local typeFilter = 'none'
+local typeFilterChanged = false
+
+local doSort = false
+
 local invslots = {'charm','leftear','head','face','rightear','neck','shoulder','arms','back','leftwrist','rightwrist','ranged','hands','mainhand','offhand','leftfinger','rightfinger','chest','legs','feet','waist','powersource','ammo','none'}
-
-local function helpMarker(desc)
-    ImGui.TextDisabled("(?)")
-    if ImGui.IsItemHovered() then
-        ImGui.BeginTooltip()
-        ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35.0)
-        ImGui.TextUnformatted(desc)
-        ImGui.PopTextWrapPos()
-        ImGui.EndTooltip()
-    end
-end
-
--- Sort routines
-local function sortInventory()
-    -- Various Sorting
-    if sortOrder.name and sortOrder.stack then
-        table.sort(items, function(a, b) return a.item.Stack() > b.item.Stack() or (a.item.Stack() == b.item.Stack() and a.item.Name() < b.item.Name()) end)
-    elseif sortOrder.stack then
-        table.sort(items, function(a, b) return a.item.Stack() > b.item.Stack() end)
-    elseif sortOrder.name then
-        table.sort(items, function(a, b) return a.item.Name() < b.item.Name() end)
-    end
-end
+local itemtypes = {'Armor','weapon','container','Food','Drink','Combinable','none'}
 
 -- The beast - this routine is what builds our inventory.
 local function createInventory()
@@ -123,7 +100,6 @@ local function createInventory()
                 end
             end
         end
-        --sortInventory()
     end
 end
 
@@ -152,52 +128,42 @@ local function displayBagUtilities()
     if ImGui.SmallButton("Clear") then filterText = "" filterChanged = true end
     ImGui.SameLine()
     if ImGui.SmallButton("AutoInventory") then mq.cmd('/autoinv') end
-    ImGui.SameLine()
+end
+
+local function displayMenus()
+    if not ImGui.CollapsingHeader("Search Options") then
+        return
+    end
+    if ImGui.Button('Clear Selections') then
+        slotFilter = 'none'
+        slotFilterChanged = true
+        typeFilter = 'none'
+        typeFilterChanged = true
+    end
     ImGui.PushItemWidth(100)
     if ImGui.BeginCombo('Slot Type', slotFilter) then
         for _,j in ipairs(invslots) do
             if ImGui.Selectable(j, j == slotFilter) then
-                slotFilter = j
-                slotFilterChanged = true
+                if slotFilter ~= j then
+                    slotFilter = j
+                    slotFilterChanged = true
+                end
+            end
+        end
+        ImGui.EndCombo()
+    end
+    if ImGui.BeginCombo('Item Type', typeFilter) then
+        for _,j in ipairs(itemtypes) do
+            if ImGui.Selectable(j, j == typeFilter) then
+                if typeFilter ~= j then
+                    typeFilter = j
+                    typeFilterChanged = true
+                end
             end
         end
         ImGui.EndCombo()
     end
     ImGui.PopItemWidth()
-    --ImGui.SameLine()
-    --if ImGui.SmallButton("Testing") then
-    --    for label, item in pairs(selectedItems) do
-    --        print(("%s: %s"):format(label, item.Name()))
-    --    end
-    --end
-end
-
--- Display the collapasable menu area above the items
-local function displayBagOptions()
-
-    if not ImGui.CollapsingHeader("Bag Options") then
-        ImGui.NewLine()
-        return
-    end
-
-    if ImGui.Checkbox("Name", sortOrder.name) then
-        sortOrder.name = true
-    else
-        sortOrder.name = false
-    end
-    ImGui.SameLine()
-    helpMarker("Order items from your inventory sorted by the name of the item.")
-
-    if ImGui.Checkbox("Stack", sortOrder.stack) then
-        sortOrder.stack = true
-    else
-        sortOrder.stack = false
-    end
-    ImGui.SameLine()
-    helpMarker("Order items with the largest stacks appearing first.")
-
-    ImGui.Separator()
-    ImGui.NewLine()
 end
 
 -- Helper to create a unique hidden label for each button.  The uniqueness is
@@ -235,13 +201,6 @@ local function drawItemRow(item)
     local itemSlot2 = item.item.ItemSlot2()
     local stack = item.item.Stack()
     local label = buttonLabel(itemSlot, itemSlot2, item.bank, item.sharedbank, item.invslot, item.augslot)
-
-    if ImGui.Checkbox(label..'checkbox', selectedItems[label] ~= nil) then
-        selectedItems[label] = item.item
-    else
-        selectedItems[label] = nil
-    end
-    ImGui.TableNextColumn()
 
     -- Reset the cursor to start position, then fetch and draw the item icon
     local cursor_x, cursor_y = ImGui.GetCursorPos()
@@ -308,11 +267,10 @@ local function displayItemOnCursor()
     end
 end
 
-local ColumnID_Checkbox = 1
-local ColumnID_Icon = 2
-local ColumnID_Name = 3
-local ColumnID_Quantity = 4
-local ColumnID_Slot = 5
+local ColumnID_Icon = 1
+local ColumnID_Name = 2
+local ColumnID_Quantity = 3
+local ColumnID_Slot = 4
 
 local current_sort_specs = nil
 local function CompareWithSortSpecs(a, b)
@@ -349,60 +307,70 @@ local function CompareWithSortSpecs(a, b)
     return aName < bName
 end
 
+local function applyTextFilter(item)
+    return string.match(string.lower(item.item.Name()), string.lower(filterText))
+end
+
+local function applySlotFilter(item)
+    return item.item.WornSlot(slotFilter)()
+end
+
+local function applyTypeFilter(item)
+    return (typeFilter == 'weapon' and (item.item.Damage() > 0 or item.item.Type() == 'Shield')) or
+            (typeFilter == 'container' and item.item.Container() > 0) or
+            item.item.Type() == typeFilter
+end
+
+local function filterItems()
+    if filterChanged or slotFilterChanged or typeFilterChanged then
+        filteredItems = {}
+        local filterFunction = nil
+        if filterText ~= '' and slotFilter ~= 'none' and typeFilter ~= 'none' then
+            filterFunction = function(item) return applyTextFilter(item) and applySlotFilter(item) and applyTypeFilter(item) end
+        elseif filterText ~= '' and slotFilter ~= 'none' then
+            filterFunction = function(item) return applyTextFilter(item) and applySlotFilter(item) end
+        elseif filterText ~= '' then
+            filterFunction = function(item) return applyTextFilter(item) end
+        elseif filterText ~= '' and typeFilter ~= 'none' then
+            filterFunction = function(item) return applyTextFilter(item) and applyTypeFilter(item) end
+        elseif slotFilter ~= 'none' and typeFilter ~= 'none' then
+            filterFunction = function(item) return applySlotFilter(item) and applyTypeFilter(item) end
+        elseif slotFilter ~= 'none' then
+            filterFunction = function(item) return applySlotFilter(item) end
+        elseif typeFilter ~= 'none' then
+            filterFunction = function(item) return applyTypeFilter(item) end
+        else
+            filteredItems = items
+        end
+        if filterFunction then
+            for i,item in ipairs(items) do
+                if filterFunction(item) then
+                    table.insert(filteredItems, item)
+                end
+            end
+        end
+        filterChanged = false
+        slotFilterChanged = false
+        doSort = true
+    end
+end
+
 local TABLE_FLAGS = bit32.bor(ImGuiTableFlags.ScrollY,ImGuiTableFlags.RowBg,ImGuiTableFlags.BordersOuter,ImGuiTableFlags.BordersV,ImGuiTableFlags.SizingStretchSame,ImGuiTableFlags.Sortable)
-local doSort = true
 ---Handles the bag layout of individual items
 local function displayBagContent()
     createInventory()
-    --ImGui.SetWindowFontScale(1.25)
-    --ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 20)
-    --ImGui.TextUnformatted(string.format("Used/Free Slots (%s/%s)", usedSlots, mq.TLO.Me.FreeInventory()))
-    --ImGui.SetWindowFontScale(1.0)
-
-    if ImGui.BeginTable('bagtable', 5, TABLE_FLAGS) then
+    if ImGui.BeginTable('bagtable', 4, TABLE_FLAGS) then
         ImGui.TableSetupScrollFreeze(0, 1)
-        ImGui.TableSetupColumn('##checkbox', ImGuiTableColumnFlags.NoSort, 1, ColumnID_Checkbox)
         ImGui.TableSetupColumn('##icon', ImGuiTableColumnFlags.NoSort, 1, ColumnID_Icon)
         ImGui.TableSetupColumn('Name', ImGuiTableColumnFlags.DefaultSort, 5, ColumnID_Name)
-        ImGui.TableSetupColumn('Quantity', ImGuiTableColumnFlags.DefaultSort, 2, ColumnID_Quantity)
+        ImGui.TableSetupColumn('Quantity', ImGuiTableColumnFlags.DefaultSort, 1, ColumnID_Quantity)
         ImGui.TableSetupColumn('Slot', ImGuiTableColumnFlags.NoSort, 2, ColumnID_Slot)
         ImGui.TableHeadersRow()
 
-        if filterChanged or slotFilterChanged then
-            filteredItems = {}
-            if filterText ~= '' then
-                for i,item in ipairs(items) do
-                    if string.match(string.lower(item.item.Name()), string.lower(filterText)) then
-                        if slotFilter == 'none' or item.item.WornSlot(slotFilter)() then
-                            table.insert(filteredItems, item)
-                        end
-                    end
-                end
-            elseif slotFilter ~= 'none' then
-                for i,item in ipairs(items) do
-                    if item.item.WornSlot(slotFilter)() then
-                        table.insert(filteredItems, item)
-                    end
-                end
-            else
-                filteredItems = items
-            end
-            filterChanged = false
-            slotFilterChanged = false
-            doSort = true
-        end
+        filterItems()
         local sort_specs = ImGui.TableGetSortSpecs()
         if sort_specs then
             if sort_specs.SpecsDirty or doSort then
-                --print(string.format('Sort %d items:', #filteredItems))
-                --for n = 1, sort_specs.SpecsCount, 1 do
-                    -- Here we identify columns using the ColumnUserID value that we ourselves passed to TableSetupColumn()
-                    -- We could also choose to identify columns based on their index (sort_spec.ColumnIndex), which is simpler!
-                    --local sort_spec = sort_specs:Specs(n)
-                    --print(string.format('  Spec=%d ColumnUserID ColumnIndex=%d SortOrder=%d SortDirection=%d',
-                    --    n, sort_spec.ColumnUserID, sort_spec.ColumnIndex, sort_spec.SortOrder, sort_spec.SortDirection))
-                --end
-
                 if #filteredItems > 1 then
                     current_sort_specs = sort_specs
                     table.sort(filteredItems, CompareWithSortSpecs)
@@ -435,7 +403,7 @@ local function FindGUI()
         openGUI, shouldDrawGUI = ImGui.Begin(string.format("Find Item Window"), openGUI, ImGuiWindowFlags.NoScrollbar)
         if shouldDrawGUI then
             displayBagUtilities()
-            --displayBagOptions()
+            displayMenus()
             displayBagContent()
             displayItemOnCursor()
         end
