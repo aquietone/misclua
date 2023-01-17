@@ -226,26 +226,20 @@ local function onLeftClick(item, itemLocation)
     end
 end
 
-local function onRightClick(item, itemName)
-    if not item.augslot and (not (item.bank or item.sharedbank) or mq.TLO.Window('BigBankWnd').Open()) then
-        mq.cmdf('/nomodkey /altkey /itemnotify %s leftmouseup', itemName)
-    end
-end
-
-local function handleClicks(item, itemLocation, itemName)
+local function handleClicks(item, itemLocation)
     if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Left) then
         onLeftClick(item, itemLocation)
     end
     if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Right) then
-        onRightClick(item, itemLocation)
+        item.item.Inspect()
     end
 end
 
 local function drawItemRow(item)
     local itemName = item.item.Name()
     local itemIcon = item.item.Icon()
-    local itemSlot = item.itemslot--.ItemSlot()
-    local itemSlot2 = item.itemslot2--.ItemSlot2()
+    local itemSlot = item.itemslot
+    local itemSlot2 = item.itemslot2
     local stack = item.item.Stack()
     if not (itemName and itemIcon and itemSlot and itemSlot2 and stack) then return end
     local label = buttonLabel(itemSlot, itemSlot2, item.bank, item.sharedbank, item.invslot, item.augslot)
@@ -263,7 +257,7 @@ local function drawItemRow(item)
     ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0, 0.3, 0, 0.3)
     ImGui.Selectable(label, false, bit32.bor(ImGuiSelectableFlags.SpanAllColumns, ImGuiSelectableFlags.AllowItemOverlap))
     ImGui.PopStyleColor(3)
-    handleClicks(item, itemLocation, itemName)
+    handleClicks(item, itemLocation)
 
     ImGui.TableNextColumn()
 
@@ -397,10 +391,7 @@ local function applyLocationFilter(item)
 end
 
 local function applyClassFilter(item)
-    if item.item.Classes() == 16 then return true end
-    for i=1,item.item.Classes() do
-        if item.item.Class(i)() == classFilter then return true end
-    end
+    if item.item.Classes() == 16 or item.item.Class(classFilter)() then return true end
 end
 
 local function filterItems()
@@ -483,13 +474,11 @@ local function displayBagContent()
 end
 
 local itemRequest = nil
--- {toon=toon, item=result, count=count}
 local function drawSearchItemRow(item)
     local itemName = item.item
     local itemToon = item.toon
     local itemCount = item.count
     local itemInBags = item.inbags
-    --local label = btn_label(itemSlot, itemSlot2, item.bank, item.sharedbank, item.invslot)
 
     if itemInBags and ImGui.Button('Request##'..itemName..itemToon) then
         itemRequest = {toon=itemToon, name=itemName}
