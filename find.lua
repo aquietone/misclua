@@ -33,16 +33,18 @@ local forceRefresh = false
 
 local filterChanged = true
 local filterText = ""
-local slotFilter = 'none'
-local typeFilter = 'none'
-local locationFilter = 'all'
+local slotFilter = 'Any Slot'
+local typeFilter = 'Any Type'
+local locationFilter = 'Any Location'
+local classFilter = 'Any Class'
 
 local doSort = true
 
 local invslots = {'charm','leftear','head','face','rightear','neck','shoulder','arms','back','leftwrist','rightwrist','ranged','hands','mainhand','offhand','leftfinger','rightfinger','chest','legs','feet','waist','powersource','ammo'}
-local invslotfilters = {'none','charm','ears','head','face','neck','shoulder','arms','back','wrists','ranged','hands','mainhand','offhand','fingers','chest','legs','feet','waist','powersource','ammo'}
-local itemtypefilters = {'none','Armor','weapon','Augmentation','container','Food','Drink','Combinable'}
-local locationfilters = {'all','on person','bank'}
+local invslotfilters = {'Any Slot','charm','ears','head','face','neck','shoulder','arms','back','wrists','ranged','hands','mainhand','offhand','fingers','chest','legs','feet','waist','powersource','ammo'}
+local itemtypefilters = {'Any Type','Armor','weapon','Augmentation','container','Food','Drink','Combinable'}
+local locationfilters = {'Any Location','on person','bank'}
+local classfilters = {'Any Class','Bard','Beastlord','Berserker','Cleric','Druid','Enchanter','Magician','Monk','Necromancer','Paladin','Ranger','Rogue','Shadow Knight','Shaman','Warrior','Wizard'}
 
 local searchText = ''
 local searchResults = {}
@@ -53,6 +55,27 @@ local searchUpdateResults = true
 
 local usingDanNet = true
 
+local function insertItem(item, opts)
+    local entry = {item=item, itemslot=item.ItemSlot(), itemslot2=item.ItemSlot2()}
+    if opts then for k,v in pairs(opts) do entry[k] = v end end
+    table.insert(items, entry)
+end
+
+local function insertContainerItems(slot, opts)
+    for j = 1, slot.Container() do
+        local containerSlot = slot.Item(j)
+        if containerSlot() then
+            insertItem(containerSlot, opts)
+        end
+    end
+    --print(slot.ItemSlot())
+    insertItem(slot, opts)
+end
+
+local function isContainer(slot)
+    return slot.Container() and slot.Container() > 0
+end
+
 -- The beast - this routine is what builds our inventory.
 local function createInventory()
     if (os.difftime(os.time(), startTime)) > INVENTORY_DELAY_SECONDS or #items == 0 or forceRefresh then
@@ -61,56 +84,38 @@ local function createInventory()
         filterChanged = true
         searchChanged = true
         items = {}
-        for i = 23, 34, 1 do
+        for i = 23, 34 do
             local slot = mq.TLO.Me.Inventory(i)
-            if slot.Container() and slot.Container() > 0 then
-                for j = 1, (slot.Container()), 1 do
-                    local bagSlot = slot.Item(j)
-                    if bagSlot() then
-                        table.insert(items, {item=bagSlot, itemslot=bagSlot.ItemSlot(), itemslot2=bagSlot.ItemSlot2()})
-                    end
-                end
-                table.insert(items, {item=slot, itemslot=slot.ItemSlot(), itemslot2=slot.ItemSlot2()})
+            if isContainer(slot) then
+                insertContainerItems(slot)
             elseif slot.ID() ~= nil then
-                table.insert(items, {item=slot, itemslot=slot.ItemSlot(), itemslot2=slot.ItemSlot2()}) -- We have an item in a bag slot
+                insertItem(slot) -- We have an item in a bag slot
             end
         end
-        for i = 1, 24, 1 do
+        for i = 1, 24 do
             local slot = mq.TLO.Me.Bank(i)
-            if slot.Container() and slot.Container() > 0 then
-                for j = 1, (slot.Container()), 1 do
-                    local bagSlot = slot.Item(j)
-                    if bagSlot() then
-                        table.insert(items, {item=bagSlot, bank=true, itemslot=bagSlot.ItemSlot(), itemslot2=bagSlot.ItemSlot2()})
-                    end
-                end
-                table.insert(items, {item=slot, bank=true, itemslot=slot.ItemSlot(), itemslot2=slot.ItemSlot2()})
+            if isContainer(slot) then
+                insertContainerItems(slot, {bank=true})
             elseif slot.ID() ~= nil then
-                table.insert(items, {item=slot, bank=true, itemslot=slot.ItemSlot(), itemslot2=slot.ItemSlot2()}) -- We have an item in a bank slot
+                insertItem(slot, {bank=true}) -- We have an item in a bank slot
             end
         end
-        for i = 1, 2, 1 do
+        for i = 1, 2 do
             local slot = mq.TLO.Me.SharedBank(i)
-            if slot.Container() and slot.Container() > 0 then
-                for j = 1, (slot.Container()), 1 do
-                    local bagSlot = slot.Item(j)
-                    if bagSlot() then
-                        table.insert(items, {item=bagSlot, sharedbank=true, itemslot=bagSlot.ItemSlot(), itemslot2=bagSlot.ItemSlot2()})
-                    end
-                end
-                table.insert(items, {item=slot, sharedbank=true, itemslot=slot.ItemSlot(), itemslot2=slot.ItemSlot2()})
+            if isContainer(slot) then
+                insertContainerItems(slot, {sharedbank=true})
             elseif slot.ID() ~= nil then
-                table.insert(items, {item=slot, sharedbank=true, itemslot=slot.ItemSlot(), itemslot2=slot.ItemSlot2()}) -- We have an item in a bank slot
+                insertItem(slot, {sharedbank=true}) -- We have an item in a sharedbank slot
             end
         end
-        for i = 0, 22, 1 do
+        for i = 0, 22 do
             local slot = mq.TLO.InvSlot(i).Item
             if slot.ID() ~= nil then
-                table.insert(items, {item=slot, invslot=i, itemslot=slot.ItemSlot(), itemslot2=slot.ItemSlot2()})
+                insertItem(slot, {invslot=i})
                 for j=1,8 do
                     local augSlot = slot.AugSlot(j).Item
                     if augSlot() then
-                        table.insert(items, {item=augSlot, invslot=i, augslot=j, itemslot=augSlot.ItemSlot(), itemslot2=augSlot.ItemSlot2()})
+                        insertItem(augSlot, {invslot=i, augslot=j})
                     end
                 end
             end
@@ -137,9 +142,10 @@ local function displayBagUtilities()
     ImGui.PopItemWidth()
     if selected and filterText ~= text then
         filterText = text
-        slotFilter = 'none'
-        typeFilter = 'none'
-        locationFilter = 'all'
+        slotFilter = 'Any Slot'
+        typeFilter = 'Any Type'
+        locationFilter = 'Any Location'
+        classFilter = 'Any Class'
         filterChanged = true
     end
     ImGui.SameLine()
@@ -175,8 +181,10 @@ local function displayMenus()
     ImGui.SameLine()
     typeFilter, tempFilterChanged = drawFilterMenu('Item Type', typeFilter, itemtypefilters)
     filterChanged = filterChanged or tempFilterChanged
-    ImGui.SameLine()
     locationFilter, tempFilterChanged = drawFilterMenu('Location', locationFilter, locationfilters)
+    filterChanged = filterChanged or tempFilterChanged
+    ImGui.SameLine()
+    classFilter, tempFilterChanged = drawFilterMenu('Class', classFilter, classfilters)
     filterChanged = filterChanged or tempFilterChanged
     ImGui.PopItemWidth()
 end
@@ -201,9 +209,9 @@ local function getItemLocation(itemSlot, itemSlot2, inBank, inSharedBank, invslo
     if invslot then return invslots[invslot+1] end
     if itemSlot2 == -1 then
         local prefix = ''
-        if inBank then return string.format('bank %s', itemSlot+1) end
-        if inSharedBank then return string.format('sharedbank %s', itemSlot+1) end
-        return string.format('pack %s', itemSlot-22)
+        if inBank then return string.format('bank%s', itemSlot+1) end
+        if inSharedBank then return string.format('sharedbank%s', itemSlot+1) end
+        return string.format('pack%s', itemSlot-22)
     else
         return "in "..toPackOrBank(itemSlot, inBank, inSharedBank).." "..toBagSlot(itemSlot2)
     end
@@ -220,7 +228,7 @@ end
 
 local function onRightClick(item, itemName)
     if not item.augslot and (not (item.bank or item.sharedbank) or mq.TLO.Window('BigBankWnd').Open()) then
-        mq.cmdf('/squelch /nomodkey /altkey /itemnotify "%s" leftmouseup', itemName)
+        mq.cmdf('/nomodkey /altkey /itemnotify %s leftmouseup', itemName)
     end
 end
 
@@ -229,7 +237,7 @@ local function handleClicks(item, itemLocation, itemName)
         onLeftClick(item, itemLocation)
     end
     if ImGui.IsItemHovered() and ImGui.IsMouseReleased(ImGuiMouseButton.Right) then
-        onRightClick(item, itemName)
+        onRightClick(item, itemLocation)
     end
 end
 
@@ -260,7 +268,6 @@ local function drawItemRow(item)
     ImGui.TableNextColumn()
 
     ImGui.Text(itemName)
-    --handleClicks(item, itemLocation, itemName)
 
     ImGui.TableNextColumn()
 
@@ -270,12 +277,10 @@ local function drawItemRow(item)
     else
         ImGui.Text('1')
     end
-    --handleClicks(item, itemLocation, itemName)
 
     ImGui.TableNextColumn()
 
     ImGui.Text(itemLocation)
-    --handleClicks(item, itemLocation, itemName)
 
     if usingDanNet then
         ImGui.TableNextColumn()
@@ -391,6 +396,13 @@ local function applyLocationFilter(item)
             (locationFilter == 'bank' and (item.bank or item.sharedbank))
 end
 
+local function applyClassFilter(item)
+    if item.item.Classes() == 16 then return true end
+    for i=1,item.item.Classes() do
+        if item.item.Class(i)() == classFilter then return true end
+    end
+end
+
 local function filterItems()
     if filterChanged then
         filteredItems = {}
@@ -398,9 +410,10 @@ local function filterItems()
         local filterFunction = nil
         local filterFuncs = {}
         if filterText ~= '' then table.insert(filterFuncs, applyTextFilter) end
-        if slotFilter ~= 'none' then table.insert(filterFuncs, applySlotFilter) end
-        if typeFilter ~= 'none' then table.insert(filterFuncs, applyTypeFilter) end
-        if locationFilter ~= 'all' then table.insert(filterFuncs, applyLocationFilter) end
+        if slotFilter ~= 'Any Slot' then table.insert(filterFuncs, applySlotFilter) end
+        if typeFilter ~= 'Any Type' then table.insert(filterFuncs, applyTypeFilter) end
+        if locationFilter ~= 'Any Location' then table.insert(filterFuncs, applyLocationFilter) end
+        if classFilter ~= 'Any Class' then table.insert(filterFuncs, applyClassFilter) end
 
         if #filterFuncs > 0 then
             filterFunction = function(item)
