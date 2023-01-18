@@ -183,16 +183,24 @@ local function split(input, sep)
     return t
 end
 
-local function loadINI()
-    local sections = split(mq.TLO.Ini(loot.LootFile)())
-    lootData = {}
-    for _,section in ipairs(sections) do
-        if not lootData[section] then lootData[section] = {} end
-        local sectionKeys = split(mq.TLO.Ini(loot.LootFile..','..section)())
-        for _,key in ipairs(sectionKeys) do
-            lootData[section][key] = mq.TLO.Ini.File(loot.LootFile).Section(section).Key(key).Value()
-        end
+local function loadINISection(iniFile, section)
+    if not lootData[section] then lootData[section] = {} end
+    local iniSection = iniFile.Section(section)
+    local keyCount = iniSection.Key.Count()
+    for i=1,keyCount do
+        local key = iniSection.Key.KeyAtIndex(i)()
+        lootData[section][key] = iniSection.Key(key).Value()
     end
+end
+
+local function loadINIFile()
+    local iniFile = mq.TLO.Ini.File(loot.LootFile)
+    lootData = {}
+    for i=65,90 do
+        local section = string.char(i)
+        loadINISection(iniFile, section)
+    end
+    loadINISection(iniFile, 'Settings')
 end
 
 local function checkCursor()
@@ -286,7 +294,7 @@ local function commandHandler(...)
         if args[1] == 'sell' and not loot.Terminate then
             doSell = true
         elseif args[1] == 'reload' then
-            loadINI()
+            loadINIFile()
             loot.logger.Info("Reloaded Loot File")
         elseif args[1] == 'bank' then
             loot.bankStuff()
@@ -648,7 +656,7 @@ local function init(args)
     if not fileExists(loot.LootFile) then
         writeSettings()
     end
-    loadINI()
+    loadINIFile()
     if not lootData.Settings then
         writeSettings()
     end
