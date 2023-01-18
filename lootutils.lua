@@ -139,7 +139,7 @@ local loot = {
 loot.logger.prefix = 'lootutils'
 
 -- Internal settings
-local lootData = nil
+local lootData = {}
 local shouldLootMobs = true
 local doSell = false
 local cantLootList = {}
@@ -158,15 +158,10 @@ local eventForage, eventSell, eventCantLoot
 
 -- UTILITIES
 
-local function fileExists(fileName)
-    local f = io.open(fileName, 'r')
-    if f ~= nil then io.close(f) return true else return false end
-end
-
 local function writeSettings()
     for option,value in pairs(loot) do
-        local optionType = type(option)
-        if saveOptionTypes[optionType] then
+        local valueType = type(value)
+        if saveOptionTypes[valueType] then
             mq.cmdf('/ini "%s" "%s" "%s" "%s"', loot.LootFile, 'Settings', option, value)
         end
     end
@@ -183,23 +178,15 @@ local function split(input, sep)
     return t
 end
 
-local function loadINISection(iniFile, section)
-    if not lootData[section] then lootData[section] = {} end
-    local iniSection = iniFile.Section(section)
-    local keyCount = iniSection.Key.Count()
+local function loadSettings()
+    local settings = {}
+    local iniSettings = mq.TLO.Ini.File(loot.LootFile).Section('Settings')
+    local keyCount = iniSettings.Key.Count()
     for i=1,keyCount do
-        local key = iniSection.Key.KeyAtIndex(i)()
-        lootData[section][key] = iniSection.Key(key).Value()
+        local key = iniSettings.Key.KeyAtIndex(i)()
+        settings[key] = iniSettings.Key(key).Value()
     end
-end
-
-local function loadINIFile()
-    local iniFile = mq.TLO.Ini.File(loot.LootFile)
-    local sections = split(mq.TLO.Ini(loot.LootFile)())
-    lootData = {}
-    for _,section in ipairs(sections) do
-        loadINISection(iniFile, section)
-    end
+    return settings
 end
 
 local function checkCursor()
@@ -239,23 +226,21 @@ local function addRule(itemName, section, rule)
     mq.cmdf('/ini "%s" "%s" "%s" "%s"', loot.LootFile, section, itemName, rule)
 end
 
+local function lookupIniLootRule(section, key)
+    return mq.TLO.Ini.File(loot.LootFile).Section(section).Key(key).Value()
+end
+
 local function getRule(item)
     local itemName = item.Name()
     local lootDecision = 'Keep'
     local tradeskill = item.Tradeskills()
     local sellPrice = item.SellPrice() or 0
     local stackable = item.Stackable()
-    if not lootData then return lootDecision end
     local firstLetter = itemName:sub(1,1):upper()
-    if lootData['Global'] then
-        for _,rule in pairs(lootData['Global']) do
-            if rule:find(itemName) then
-                lootDecision,_ = rule:gsub(itemName..'|','')
-                return lootDecision
-            end
-        end
-    end
-    if not lootData[firstLetter] or not lootData[firstLetter][itemName] then
+
+    lootData[firstLetter] = lootData[firstLetter] or {}
+    lootData[firstLetter][itemName] = lootData[firstLetter][itemName] or lookupIniLootRule(firstLetter, itemName)
+    if lootData[firstLetter][itemName] == 'NULL' then
         if tradeskill then lootDecision = 'Bank' end
         if sellPrice < loot.MinSellPrice then lootDecision = 'Ignore' end
         if not stackable and loot.StackableOnly then lootDecision = 'Ignore' end
@@ -293,7 +278,7 @@ local function commandHandler(...)
         if args[1] == 'sell' and not loot.Terminate then
             doSell = true
         elseif args[1] == 'reload' then
-            loadINIFile()
+            lootData = {}
             loot.logger.Info("Reloaded Loot File")
         elseif args[1] == 'bank' then
             loot.bankStuff()
@@ -437,6 +422,11 @@ end
 eventSell = function(line, itemName)
     local firstLetter = itemName:sub(1,1):upper()
     if lootData[firstLetter] and lootData[firstLetter][itemName] == 'Sell' then return end
+    if lookupIniLootRule(firstLetter, itemName) == 'Sell' then
+        lootData[firstLetter] = lootData[firstLetter] or {}
+        lootData[firstLetter][itemName] = 'Sell'
+        return
+    end
     if loot.AddNewSales then
         loot.logger.Info(string.format('Setting %s to Sell', itemName))
         if not lootData[firstLetter] then lootData[firstLetter] = {} end
@@ -652,15 +642,14 @@ local function processArgs(args)
 end
 
 local function init(args)
-    if not fileExists(loot.LootFile) then
+    local iniFile = mq.TLO.Ini.File(loot.LootData)
+    if not (iniFile.Exists() and iniFile.Section('Settings').Exists()) then
         writeSettings()
-    end
-    loadINIFile()
-    if not lootData.Settings then
-        writeSettings()
-    end
-    for option, value in pairs(lootData.Settings) do
-        loot[option] = value
+    else
+        local settings = loadSettings()
+        for option, value in pairs(settings) do
+            loot[option] = value
+        end
     end
 
     setupEvents()
