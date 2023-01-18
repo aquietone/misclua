@@ -195,12 +195,11 @@ end
 
 local function loadINIFile()
     local iniFile = mq.TLO.Ini.File(loot.LootFile)
+    local sections = split(mq.TLO.Ini(loot.LootFile)())
     lootData = {}
-    for i=65,90 do
-        local section = string.char(i)
+    for _,section in ipairs(sections) do
         loadINISection(iniFile, section)
     end
-    loadINISection(iniFile, 'Settings')
 end
 
 local function checkCursor()
