@@ -26,6 +26,8 @@ local animBox = mq.FindTextureAnimation("A_RecessedBox")
 local items = {}
 local filteredItems = {}
 
+local showStats = false
+
 -- Filter options
 
 local startTime = os.time()
@@ -152,6 +154,8 @@ local function displayBagUtilities()
     if ImGui.SmallButton("Clear") then filterText = "" filterChanged = true end
     ImGui.SameLine()
     if ImGui.SmallButton("AutoInventory") then mq.cmd('/autoinv') end
+    ImGui.SameLine()
+    showStats = ImGui.Checkbox('Show Stat Columns', showStats)
     if usingDanNet then
         ImGui.SameLine()
         if ImGui.SmallButton("Search Toons") then openSearchGUI = true end
@@ -285,6 +289,19 @@ local function drawItemRow(item)
             openSearchGUI = true
         end
     end
+
+    if showStats then
+        ImGui.TableNextColumn()
+        ImGui.Text('%s', item.item.AC())
+        ImGui.TableNextColumn()
+        ImGui.Text('%s', item.item.HP())
+        ImGui.TableNextColumn()
+        ImGui.Text('%s', item.item.Mana())
+        ImGui.TableNextColumn()
+        ImGui.Text('%s', item.item.Shielding())
+        ImGui.TableNextColumn()
+        ImGui.Text('%s', item.item.Avoidance())
+    end
 end
 
 -- If there is an item on the cursor, display it.
@@ -315,6 +332,11 @@ local ColumnID_Name = 2
 local ColumnID_Quantity = 3
 local ColumnID_Slot = 4
 local ColumnID_Search = 5
+local ColumnID_AC = 6
+local ColumnID_HP = 7
+local ColumnID_Mana = 8
+local ColumnID_Shielding = 9
+local ColumnID_Avoidance = 10
 
 local current_sort_specs = nil
 local function CompareWithSortSpecs(a, b)
@@ -354,6 +376,16 @@ local function CompareWithSortSpecs(a, b)
                     delta = 0
                 end
             end
+        elseif sort_spec.ColumnUserID == ColumnID_AC then
+            delta = (a and a.item.AC() or 0) - (b and b.item.AC() or 0)
+        elseif sort_spec.ColumnUserID == ColumnID_HP then
+            delta = (a and a.item.HP() or 0) - (b and b.item.HP() or 0)
+        elseif sort_spec.ColumnUserID == ColumnID_Mana then
+            delta = (a and a.item.Mana() or 0) - (b and b.item.Mana() or 0)
+        elseif sort_spec.ColumnUserID == ColumnID_Shielding then
+            delta = (a and a.item.Shielding() or 0) - (b and b.item.Shielding() or 0)
+        elseif sort_spec.ColumnUserID == ColumnID_Avoidance then
+            delta = (a and a.item.Avoidance() or 0) - (b and b.item.Avoidance() or 0)
         end
 
         if delta ~= 0 then
@@ -427,11 +459,13 @@ local function filterItems()
     end
 end
 
-local TABLE_FLAGS = bit32.bor(ImGuiTableFlags.ScrollY,ImGuiTableFlags.RowBg,ImGuiTableFlags.BordersOuter,ImGuiTableFlags.BordersV,ImGuiTableFlags.SizingStretchSame,ImGuiTableFlags.Sortable)
+local TABLE_FLAGS = bit32.bor(ImGuiTableFlags.ScrollY,ImGuiTableFlags.RowBg,ImGuiTableFlags.BordersOuter,ImGuiTableFlags.BordersV,ImGuiTableFlags.SizingStretchSame,ImGuiTableFlags.Sortable,
+                                ImGuiTableFlags.Hideable, ImGuiTableFlags.Resizable, ImGuiTableFlags.Reorderable)
 ---Handles the bag layout of individual items
 local function displayBagContent()
     createInventory()
     local numColumns = usingDanNet and 5 or 4
+    if showStats then numColumns = numColumns + 5 end
     if ImGui.BeginTable('bagtable', numColumns, TABLE_FLAGS) then
         ImGui.TableSetupScrollFreeze(0, 1)
         ImGui.TableSetupColumn('##icon', ImGuiTableColumnFlags.NoSort, 1, ColumnID_Icon)
@@ -440,6 +474,13 @@ local function displayBagContent()
         ImGui.TableSetupColumn('Slot', ImGuiTableColumnFlags.DefaultSort, 2, ColumnID_Slot)
         if usingDanNet then
             ImGui.TableSetupColumn('Search', ImGuiTableColumnFlags.NoSort, 2, ColumnID_Search)
+        end
+        if showStats then
+            ImGui.TableSetupColumn('AC', ImGuiTableColumnFlags.DefaultSort, 1, ColumnID_AC)
+            ImGui.TableSetupColumn('HP', ImGuiTableColumnFlags.DefaultSort, 1, ColumnID_HP)
+            ImGui.TableSetupColumn('Mana', ImGuiTableColumnFlags.DefaultSort, 1, ColumnID_Mana)
+            ImGui.TableSetupColumn('Shielding', ImGuiTableColumnFlags.DefaultSort, 1, ColumnID_Shielding)
+            ImGui.TableSetupColumn('Avoidance', ImGuiTableColumnFlags.DefaultSort, 1, ColumnID_Avoidance)
         end
         ImGui.TableHeadersRow()
 
