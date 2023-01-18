@@ -93,8 +93,7 @@ The following events are used:
     - eventNovalue - #*#give you absolutely nothing for the #1#.#*#
         Warn and move on when attempting to sell an item which the merchant will not buy.
 
-This script depends on having LIP.lua and Write.lua in your lua/lib folder.
-    https://github.com/Dynodzzo/Lua_INI_Parser/blob/master/LIP.lua
+This script depends on having Write.lua in your lua/lib folder.
     https://gitlab.com/Knightly1/knightlinc/-/blob/master/Write.lua 
 
 This does not include the buy routines from ninjadvloot. It does include the sell routines
@@ -102,14 +101,10 @@ but lootly sell routines seem more robust than the code that was in ninjadvloot.
 The forage event handling also does not handle fishing events like ninjadvloot did.
 There is also no flag for combat looting. It will only loot if no mobs are within the radius.
 
-One last note, LIP.lua at the link above uses a regex for reading the INI file which does not cover all valid
-EQ item names. Any INI entry which doesn't match the regex is just skipped over when reading the file.
 ]]
 
 ---@type Mq
 local mq = require 'mq'
-local success, LIP = pcall(require, 'lib.LIP')
-if not success then printf('\arERROR: LIP.lua could not be loaded\n%s\ax', LIP) return end
 local success, Write = pcall(require, 'lib.Write')
 if not success then printf('\arERROR: Write.lua could not be loaded\n%s\ax', Write) return end
 
@@ -186,6 +181,18 @@ local function split(input, sep)
         table.insert(t, str)
     end
     return t
+end
+
+local function loadINI()
+    local sections = split(mq.TLO.Ini(loot.LootFile)())
+    lootData = {}
+    for _,section in ipairs(sections) do
+        if not lootData[section] then lootData[section] = {} end
+        local sectionKeys = split(mq.TLO.Ini(loot.LootFile..','..section)())
+        for _,key in ipairs(sectionKeys) do
+            lootData[section][key] = mq.TLO.Ini.File(loot.LootFile).Section(section).Key(key).Value()
+        end
+    end
 end
 
 local function checkCursor()
@@ -279,10 +286,7 @@ local function commandHandler(...)
         if args[1] == 'sell' and not loot.Terminate then
             doSell = true
         elseif args[1] == 'reload' then
-            lootData = LIP.load(loot.LootFile)
-            --for option, value in pairs(lootData.Settings) do
-            --    loot[option] = value
-            --end
+            loadINI()
             loot.logger.Info("Reloaded Loot File")
         elseif args[1] == 'bank' then
             loot.bankStuff()
@@ -644,7 +648,7 @@ local function init(args)
     if not fileExists(loot.LootFile) then
         writeSettings()
     end
-    lootData = LIP.load(loot.LootFile)
+    loadINI()
     if not lootData.Settings then
         writeSettings()
     end
