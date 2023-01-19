@@ -641,7 +641,7 @@ local function processArgs(args)
 end
 
 local function init(args)
-    local iniFile = mq.TLO.Ini.File(loot.LootData)
+    local iniFile = mq.TLO.Ini.File(loot.LootFile)
     if not (iniFile.Exists() and iniFile.Section('Settings').Exists()) then
         writeSettings()
     else
