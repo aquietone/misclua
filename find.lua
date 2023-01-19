@@ -10,6 +10,9 @@ local shouldDrawGUI = true
 local openSearchGUI = false
 local shouldDrawSearchGUI = false
 
+local leftPanelDefaultWidth = 200
+local leftPanelWidth = 200
+
 -- Constants
 local ICON_WIDTH = 20
 local ICON_HEIGHT = 20
@@ -139,8 +142,23 @@ end
 
 -- Displays static utilities that always show at the top of the UI
 local function displayBagUtilities()
-    ImGui.PushItemWidth(200)
-    local text, selected = ImGui.InputText("Filter", filterText)
+    if ImGui.SmallButton("Reset") then filterText = "" filterChanged = true end
+    ImGui.SameLine()
+    if ImGui.SmallButton("AutoInventory") then mq.cmd('/autoinv') end
+    local y = ImGui.GetCursorPosY()
+    ImGui.SetCursorPosY(y+5)
+    ImGui.Separator()
+    y = ImGui.GetCursorPosY()
+    ImGui.SetCursorPosY(y+5)
+    showStats = ImGui.Checkbox('Show Stat Columns', showStats)
+    y = ImGui.GetCursorPosY()
+    ImGui.SetCursorPosY(y+5)
+    ImGui.Separator()
+    y = ImGui.GetCursorPosY()
+    ImGui.SetCursorPosY(y+5)
+    ImGui.Text('Search')
+    ImGui.PushItemWidth(185)
+    local text, selected = ImGui.InputText("##Filter", filterText)
     ImGui.PopItemWidth()
     if selected and filterText ~= text then
         filterText = text
@@ -150,20 +168,11 @@ local function displayBagUtilities()
         classFilter = 'Any Class'
         filterChanged = true
     end
-    ImGui.SameLine()
-    if ImGui.SmallButton("Clear") then filterText = "" filterChanged = true end
-    ImGui.SameLine()
-    if ImGui.SmallButton("AutoInventory") then mq.cmd('/autoinv') end
-    ImGui.SameLine()
-    showStats = ImGui.Checkbox('Show Stat Columns', showStats)
-    if usingDanNet then
-        ImGui.SameLine()
-        if ImGui.SmallButton("Search Toons") then openSearchGUI = true end
-    end
 end
 
 local function drawFilterMenu(label, filter, filterOptions)
-    if ImGui.BeginCombo(label, filter) then
+    ImGui.Text(label)
+    if ImGui.BeginCombo('##'..label, filter) then
         for _,option in ipairs(filterOptions) do
             if ImGui.Selectable(option, option == filter) then
                 if filter ~= option then
@@ -178,19 +187,25 @@ local function drawFilterMenu(label, filter, filterOptions)
 end
 
 local function displayMenus()
-    ImGui.PushItemWidth(100)
+    ImGui.PushItemWidth(185)
     local tempFilterChanged = false
     slotFilter, tempFilterChanged = drawFilterMenu('Slot Type', slotFilter, invslotfilters)
     filterChanged = filterChanged or tempFilterChanged
-    ImGui.SameLine()
     typeFilter, tempFilterChanged = drawFilterMenu('Item Type', typeFilter, itemtypefilters)
     filterChanged = filterChanged or tempFilterChanged
     locationFilter, tempFilterChanged = drawFilterMenu('Location', locationFilter, locationfilters)
     filterChanged = filterChanged or tempFilterChanged
-    ImGui.SameLine()
     classFilter, tempFilterChanged = drawFilterMenu('Class', classFilter, classfilters)
     filterChanged = filterChanged or tempFilterChanged
     ImGui.PopItemWidth()
+    local y = ImGui.GetCursorPosY()
+    ImGui.SetCursorPosY(y+15)
+    ImGui.Separator()
+    y = ImGui.GetCursorPosY()
+    ImGui.SetCursorPosY(y+15)
+    if usingDanNet then
+        if ImGui.Button("Search Across Toons") then openSearchGUI = true end
+    end
 end
 
 -- Helper to create a unique hidden label for each button.  The uniqueness is
@@ -598,14 +613,55 @@ local function displaySearchContent()
     end
 end
 
+local function DrawSplitter(thickness, size0, min_size0)
+    local x,y = ImGui.GetCursorPos()
+    local delta = 0
+    ImGui.SetCursorPosX(x + size0)
+
+    ImGui.PushStyleColor(ImGuiCol.Button, 0, 0, 0, 0)
+    ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0, 0, 0, 0)
+    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.6, 0.6, 0.6, 0.1)
+    ImGui.Button('##splitter', thickness, -1)
+    ImGui.PopStyleColor(3)
+
+    ImGui.SetItemAllowOverlap()
+
+    ImGui.SetCursorPosX(x)
+    ImGui.SetCursorPosY(y)
+end
+
+local function LeftPaneWindow()
+    local x,y = ImGui.GetContentRegionAvail()
+    if ImGui.BeginChild("left", leftPanelWidth, y-1, true) then
+        displayBagUtilities()
+        displayMenus()
+    end
+    ImGui.EndChild()
+end
+
+local function RightPaneWindow()
+    local x,y = ImGui.GetContentRegionAvail()
+    if ImGui.BeginChild("right", x, y-1, true) then
+        displayBagContent()
+    end
+    ImGui.EndChild()
+end
+
+local function displayWindowPanels()
+    DrawSplitter(8, leftPanelDefaultWidth, 75)
+    ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 2, 2)
+    LeftPaneWindow()
+    ImGui.SameLine()
+    RightPaneWindow()
+    ImGui.PopStyleVar()
+end
+
 --- ImGui Program Loop
 local function FindGUI()
     if openGUI then
         openGUI, shouldDrawGUI = ImGui.Begin(string.format("Find Item Window"), openGUI, ImGuiWindowFlags.NoScrollbar)
         if shouldDrawGUI then
-            displayBagUtilities()
-            displayMenus()
-            displayBagContent()
+            displayWindowPanels()
             displayItemOnCursor()
         end
         ImGui.End()
