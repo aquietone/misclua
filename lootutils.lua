@@ -647,7 +647,13 @@ local function init(args)
     else
         local settings = loadSettings()
         for option, value in pairs(settings) do
-            loot[option] = value
+            if value == 'true' or value == 'false' then
+                loot[option] = value == 'true' and true or false
+            elseif tonumber(value) then
+                loot[option] = tonumber(value)
+            else
+                loot[option] = value
+            end
         end
     end
 
