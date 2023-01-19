@@ -177,14 +177,21 @@ local function split(input, sep)
 end
 
 local function loadSettings()
-    local settings = {}
     local iniSettings = mq.TLO.Ini.File(loot.LootFile).Section('Settings')
     local keyCount = iniSettings.Key.Count()
     for i=1,keyCount do
         local key = iniSettings.Key.KeyAtIndex(i)()
-        settings[key] = iniSettings.Key(key).Value()
+        local value = iniSettings.Key(key).Value()
+        if key == 'Version' then
+            loot[key] = value
+        elseif value == 'true' or value == 'false' then
+            loot[key] = value == 'true' and true or false
+        elseif tonumber(value) then
+            loot[key] = tonumber(value)
+        else
+            loot[key] = value
+        end
     end
-    return settings
 end
 
 local function checkCursor()
@@ -233,7 +240,7 @@ local function getRule(item)
     local itemName = item.Name()
     local lootDecision = 'Keep'
     local tradeskill = item.Tradeskills()
-    local sellPrice = item.SellPrice() or 0
+    local sellPrice = item.Value() and item.Value()/1000 or 0
     local stackable = item.Stackable()
     local firstLetter = itemName:sub(1,1):upper()
     local stackSize = item.StackSize()
@@ -367,7 +374,7 @@ local function lootCorpse(corpseID)
                 local haveItem = mq.TLO.FindItem(('=%s'):format(corpseItem.Name()))()
                 local haveItemBank = mq.TLO.FindItemBank(('=%s'):format(corpseItem.Name()))()
                 if not corpseItem.NoDrop() then
-                    if corpseItem.Lore() and (haveItem or haveItemBank or freeSpace == loot.SaveBagSlots) then
+                    if corpseItem.Lore() and (haveItem or haveItemBank or freeSpace <= loot.SaveBagSlots) then
                         if loot.ReportLoot then
                             mq.cmdf('/%s \a-t[\ax\aylootutils\ax\a-t]\ax I already have lore item %s, I can\'t loot another!\ay%s\ax', loot.LootChannel, corpseItem.Name())
                         else
@@ -539,7 +546,7 @@ loot.sellStuff = function()
                 if itemToSell then
                     local sellRule = getRule(bagSlot.Item(j))
                     if sellRule == 'Sell' then
-                        local sellPrice = bagSlot.Item(j).SellPrice() or 0
+                        local sellPrice = bagSlot.Item(j).Value() and bagSlot.Item(j).Value()/1000 or 0
                         if sellPrice == 0 then
                             loot.logger.Warn(string.format('Item \ay%s\ax is set to Sell but has no sell value!', itemToSell))
                         else
@@ -677,16 +684,7 @@ local function init(args)
     if not (iniFile.Exists() and iniFile.Section('Settings').Exists()) then
         writeSettings()
     else
-        local settings = loadSettings()
-        for option, value in pairs(settings) do
-            if value == 'true' or value == 'false' then
-                loot[option] = value == 'true' and true or false
-            elseif tonumber(value) then
-                loot[option] = tonumber(value)
-            else
-                loot[option] = value
-            end
-        end
+        loadSettings()
     end
 
     setupEvents()
