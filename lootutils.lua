@@ -147,8 +147,7 @@ local cantLootID = 0
 
 -- Constants
 local spawnSearch = '%s radius %d zradius 50'
-local keepActions = {Keep=true, Bank=true, Sell=true}
-local destroyActions = {Destroy=true, Ignore=true}
+local shouldLootActions = {Keep=true, Bank=true, Sell=true, Destroy=true, Ignore=false}
 local validActions = {keep='Keep',bank='Bank',sell='Sell',ignore='Ignore',destroy='Destroy'}
 local saveOptionTypes = {string=1,number=1,boolean=1}
 
@@ -310,7 +309,7 @@ end
 
 local function lootItem(index, doWhat, button)
     loot.logger.Debug('Enter lootItem')
-    if destroyActions[doWhat] then return end
+    if not shouldLootActions[doWhat] then return end
     local corpseItemID = mq.TLO.Corpse.Item(index).ID()
     local itemName = mq.TLO.Corpse.Item(index).Name()
     mq.cmdf('/nomodkey /shift /itemnotify loot%s %s', index, button)
@@ -356,7 +355,7 @@ local function lootCorpse(corpseID)
             if corpseItem() then
                 local haveItem = mq.TLO.FindItem(('=%s'):format(corpseItem.Name()))()
                 local haveItemBank = mq.TLO.FindItemBank(('=%s'):format(corpseItem.Name()))()
-                if (corpseItem.Lore() and (haveItem or haveItemBank)) or freeSpace == 0 then
+                if corpseItem.Lore() and (haveItem or haveItemBank or freeSpace == 0) then
                     loot.logger.Warn('Cannot loot lore item')
                 else
                     lootItem(i, getRule(corpseItem), 'leftmouseup')
@@ -608,7 +607,7 @@ eventForage = function()
         local ruleAmount = forageRule[2] -- how many of the item should be kept
         local currentItemAmount = mq.TLO.FindItemCount('='..foragedItem)()
         -- >= because .. does finditemcount not count the item on the cursor?
-        if destroyActions[ruleAction] or (ruleAction == 'Quest' and currentItemAmount >= ruleAmount) then
+        if not shouldLootActions[ruleAction] or (ruleAction == 'Quest' and currentItemAmount >= ruleAmount) then
             if mq.TLO.Cursor.Name() == foragedItem then
                 loot.logger.Info('Destroying foraged item '..foragedItem)
                 mq.cmd('/destroy')
@@ -616,7 +615,7 @@ eventForage = function()
             end
         -- will a lore item we already have even show up on cursor?
         -- free inventory check won't cover an item too big for any container so may need some extra check related to that?
-        elseif (keepActions[ruleAction] or currentItemAmount < ruleAmount) and (not cursorItem.Lore() or currentItemAmount == 0) and (mq.TLO.Me.FreeInventory() or (cursorItem.Stackable() and cursorItem.FreeStack())) then
+        elseif (shouldLootActions[ruleAction] or currentItemAmount < ruleAmount) and (not cursorItem.Lore() or currentItemAmount == 0) and (mq.TLO.Me.FreeInventory() or (cursorItem.Stackable() and cursorItem.FreeStack())) then
             loot.logger.Info('Keeping foraged item '..foragedItem)
             mq.cmd('/autoinv')
         else
