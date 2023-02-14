@@ -1,70 +1,71 @@
+--- @type Mq
+local mq = require('mq')
 ---@class Timer
 local Timer = {
-    expiration=0,
+    expiration = 0,
     start_time = 0,
 }
 
 ---Initialize a new timer istance.
----@param expiration number @The number of seconds after the start time which the timer will be expired.
+---@param expiration number @The number, in milliseconds, after which the timer will expire.
 ---@return Timer @The timer instance.
 function Timer:new(expiration)
     local t = {}
     setmetatable(t, self)
     self.__index = self
-    t.start_time = 0
+    t.start_time = mq.gettime()
     t.expiration = expiration
     return t
 end
 
----Return the current time in seconds.
----@return number @Returns a number representing the current time in seconds.
-function Timer.current_time()
-    return os.time()
-end
-
 ---Reset the start time value to the current time.
----@param to_value number @The value to reset the timer to.
+---@param to_value? number @The value to reset the timer to.
 function Timer:reset(to_value)
-    self.start_time = to_value or Timer.current_time()
+    self.start_time = to_value or mq.gettime()
 end
 
 ---Check whether the specified timer has passed its expiration.
 ---@return boolean @Returns true if the timer has expired, otherwise false.
 function Timer:timer_expired()
-    return os.difftime(Timer.current_time(), self.start_time) > self.expiration
+    return mq.gettime() - self.start_time > self.expiration
 end
 
 ---Get the time remaining before the timer expires.
 ---@return number @Returns the number of seconds remaining until the timer expires.
 function Timer:time_remaining()
-    return self.expiration - os.difftime(Timer.current_time(), self.start_time)
+    return self.expiration - (mq.gettime() - self.start_time)
 end
 
+--[[
+Uncomment the while loop for example usage:
+Running lua script 'timer' with PID 10
+not yet, remaining=10000
+not yet, remaining=9004
+not yet, remaining=8003
+not yet, remaining=7003
+not yet, remaining=6004
+not yet, remaining=5004
+not yet, remaining=4004
+not yet, remaining=3005
+not yet, remaining=2005
+not yet, remaining=1005
+not yet, remaining=6
+timer expired
+Ending lua script 'timer' with PID 10 and status 0
+]]
 
---[[local mq = require('mq')
-local my_timer = Timer:new(10)
+--[[
+local my_timer = Timer:new(10000)
 
--- by default, timer begins expired because initial start time is 0, so this loop ends immediately
 while true do
     if my_timer:timer_expired() then
         print('timer expired')
         break
     else
-        print('not yet')
+        printf('not yet, remaining=%s', my_timer:time_remaining())
     end
     mq.delay(1000)
 end
-
--- reset sets start time to current time, so it will take full expiration time after that
-my_timer:reset()
-while true do
-    if my_timer:timer_expired() then
-        print('timer expired')
-        break
-    else
-        print(my_timer:time_remaining())
-    end
-    mq.delay(1000)
-end]]--
+]]
 
 return Timer
