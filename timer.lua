@@ -1,6 +1,8 @@
 --- @type Mq
 local mq = require('mq')
 ---@class Timer
+---@field expiration number #Time, in milliseconds, after which the timer expires.
+---@field start_time number #Time since epoch, in milliseconds, when timer is counting from.
 local Timer = {
     expiration = 0,
     start_time = 0,
@@ -10,11 +12,12 @@ local Timer = {
 ---@param expiration number @The number, in milliseconds, after which the timer will expire.
 ---@return Timer @The timer instance.
 function Timer:new(expiration)
-    local t = {}
+    local t = {
+        start_time = mq.gettime(),
+        expiration = expiration
+    }
     setmetatable(t, self)
     self.__index = self
-    t.start_time = mq.gettime()
-    t.expiration = expiration
     return t
 end
 
@@ -31,7 +34,7 @@ function Timer:timer_expired()
 end
 
 ---Get the time remaining before the timer expires.
----@return number @Returns the number of seconds remaining until the timer expires.
+---@return number @Returns the number of milliseconds remaining until the timer expires.
 function Timer:time_remaining()
     return self.expiration - (mq.gettime() - self.start_time)
 end
