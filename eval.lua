@@ -31,7 +31,7 @@ local function processInput(input)
             if success then
                 local mqtype = nil
                 if type(result) == 'userdata' then
-                    mqtype = pcall(mq.gettype, result)
+                    _, mqtype = pcall(mq.gettype, result)
                 end
                 return result, type(result), mqtype and mqtype or ''
             end
