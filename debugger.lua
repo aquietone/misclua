@@ -17,7 +17,13 @@
         debugger.Enable()
     end
 
-    debugger.SetFunctionLocals('some_function', debugger.getlocals())
+    -- From some function you want to debug, capture its local vars:
+    function some_function(input1, input2)
+        local x
+        if debug['some_function'] then
+            debugger.SetFunctionLocals('some_function', debugger.getlocals())
+        end
+    end
 ]]
 local mq = require('mq')
 require('ImGui')
@@ -85,19 +91,23 @@ end
 local function DrawTable(table_value, current)
     for key, value in pairs(table_value) do
         if value and type(value) == 'table' then
+            ImGui.PushStyleColor(ImGuiCol.Text, 1, 1, 0, 1)
             if ImGui.TreeNode(key) then
-                if not current[key] then
+                ImGui.PopStyleColor()
+                if current and not current[key] then
                     current[key] = table.clone(table_value)
                 end
-                DrawTable(value, current[key])
+                DrawTable(value, current and current[key] or nil)
                 ImGui.TreePop()
+            else
+                ImGui.PopStyleColor()
             end
         else
-            if not current[key] then current[key] = value end
+            if current and not current[key] then current[key] = value end
             ImGui.TextColored(1, 1, 0, 1, '%s:', key)
             ImGui.SameLine()
             ImGui.Text(value)
-            if value ~= current[key] or (current[key..'_debug_timer'] and mq.gettime() - current[key..'_debug_timer'] < 500) then
+            if current and (value ~= current[key] or (current[key..'_debug_timer'] and mq.gettime() - current[key..'_debug_timer'] < 500)) then
                 ImGui.SameLine()
                 ImGui.TextColored(0, 1, 0, 1, '(Changed)')
                 if value ~= current[key] then
@@ -106,6 +116,17 @@ local function DrawTable(table_value, current)
                 end
             end
         end
+    end
+end
+
+local function DrawTableRoot(table_name, table_value, current)
+    ImGui.PushStyleColor(ImGuiCol.Text, 1, 1, 0, 1)
+    if ImGui.TreeNode(table_name) then
+        ImGui.PopStyleColor()
+        DrawTable(table_value, current)
+        ImGui.TreePop()
+    else
+        ImGui.PopStyleColor()
     end
 end
 
@@ -118,19 +139,11 @@ function Debugger.DrawDebugWindow()
             if not current_values[table_name] then
                 current_values[table_name] = table.clone(watched_tables[table_name])
             end
-            if ImGui.TreeNode(table_name) then
-                DrawTable(table_value, current_values[table_name])
-                ImGui.TreePop()
-            end
+            DrawTableRoot(table_name, table_value, current_values[table_name])
         end
         ImGui.Text('Function Local Variables:')
         for function_name, function_locals in pairs(local_vars) do
-            if ImGui.TreeNode(function_name) then
-                for name,value in pairs(function_locals) do
-                    ImGui.Text('%s: %s', name, value)
-                end
-                ImGui.TreePop()
-            end
+            DrawTableRoot(function_name, function_locals)
         end
     end
     ImGui.End()
@@ -138,7 +151,7 @@ end
 
 -- Begin Test Script
 --[[
-local function some_function(input1, input2)
+local function some_function(input1, input2, input3)
     local x
     Debugger.SetFunctionLocals('some_function', Debugger.getlocals())
 end
@@ -151,7 +164,7 @@ while true do
     mq.delay(1000)
     some_table.a_value = some_table.a_value + 1
     some_table.nested_table.b_value = some_table.nested_table.b_value - 1
-    some_function(some_table.a_value, some_table.nested_table.b_value)
+    some_function(some_table.a_value, some_table.nested_table.b_value, some_table)
 end
 ]]
 -- End Test Script
