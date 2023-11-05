@@ -77,7 +77,9 @@ function Debugger.RemoveWatchedTable(table_name)
 end
 
 function Debugger.SetFunctionLocals(function_name, locals)
+    if not function_name or not locals or type(locals) ~= 'table' then return false end
     local_vars[function_name] = locals
+    return true
 end
 
 function Debugger.UnsetFunctionLocals(function_name)
