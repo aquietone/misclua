@@ -36,10 +36,8 @@ function table.clone(org)
     return {unpack(org)}
 end
 
-local Debugger = {
-    Open = false,
-    Show = false,
-}
+local open, show = false, false
+local Debugger = {}
 
 function Debugger.getlocals()
     local locals = {}
@@ -58,11 +56,11 @@ function Debugger.Init()
 end
 
 function Debugger.Enable()
-    Debugger.Open = true
+    open = true
 end
 
 function Debugger.Disable()
-    Debugger.Open = false
+    open = false
 end
 
 function Debugger.AddWatchedTable(table_name, table_value)
@@ -131,9 +129,9 @@ local function DrawTableRoot(table_name, table_value, current)
 end
 
 function Debugger.DrawDebugWindow()
-    if not Debugger.Open then return end
-    Debugger.Open, Debugger.Show = ImGui.Begin('Lua Debug Window', Debugger.Open)
-    if Debugger.Show then
+    if not open then return end
+    open, show = ImGui.Begin('Lua Debug Window', open)
+    if show then
         ImGui.Text('Watched Tables:')
         for table_name, table_value in pairs(watched_tables) do
             if not current_values[table_name] then
