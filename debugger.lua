@@ -39,6 +39,24 @@ end
 local open, show = false, false
 local Debugger = {}
 
+local function traceback ()
+    local level = 3 -- skip traceback() and getlocals() frames
+    local stack = 'stack:'
+    while true do
+        local info = debug.getinfo(level, "nSl")
+        if not info then break end
+        if info.what == "C" then   -- is a C function?
+            stack = stack..'\n\t'.."C function"
+        elseif info.what == "Lua" then   -- a Lua function
+            stack = stack..'\n\t'..string.format("[%s]:%d: in function '%s'", info.short_src, info.currentline, info.name)
+        elseif info.what == "main" then   -- main chunk
+            stack = stack..'\n\t'..string.format("[%s]:%d: in main chunk", info.short_src, info.currentline)
+        end
+        level = level + 1
+    end
+    return stack
+end
+
 function Debugger.getlocals()
     local locals = {}
     local a = 1
@@ -48,7 +66,7 @@ function Debugger.getlocals()
         locals[name] = value or 'nil'
         a = a + 1
     end
-    return {Variables=locals, Traceback=debug.traceback()}
+    return {Variables=locals, Traceback=traceback()}
 end
 
 function Debugger.Init()
