@@ -48,8 +48,7 @@ function Debugger.getlocals()
         locals[name] = value or 'nil'
         a = a + 1
     end
-    locals.traceback = {[1]=debug.traceback()}
-    return locals
+    return {Variables=locals, Traceback=debug.traceback()}
 end
 
 function Debugger.Init()
