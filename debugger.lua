@@ -156,17 +156,19 @@ end
 
 function Debugger:DrawDebugWindow()
     if not self.open then return end
-    self.open, self.show = ImGui.Begin('Lua Debug Window##'..self.name, self.open)
+    self.open, self.show = ImGui.Begin('Lua Debug Window ('..self.name..')', self.open)
     if self.show then
-        ImGui.Text('Watched Tables:')
+        local first = true
         for table_name, table_value in pairs(self.watched_tables) do
+            if first then ImGui.Text('Watched Tables:') first = false end
             if not self.current_values[table_name] then
                 self.current_values[table_name] = table.clone(self.watched_tables[table_name])
             end
             DrawTableRoot(table_name, table_value, self.current_values[table_name])
         end
-        ImGui.Text('Function Local Variables:')
+        first = true
         for function_name, function_locals in pairs(self.local_vars) do
+            if first then ImGui.Text('Function Local Variables:') first = false end
             DrawTableRoot(function_name, function_locals)
         end
     end
@@ -180,7 +182,7 @@ debugTableValues:Enable()
 
 local function some_function(input1, input2, input3)
     local x
-    debugTableValues:SetFunctionLocals('some_function', Debugger.getlocals())
+    debugTableValues:SetFunctionLocals('some_function', debugTableValues:getlocals())
 end
 
 local debugFunctionLocals = Debugger.new('functions')
