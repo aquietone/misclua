@@ -5,39 +5,49 @@
     Usage:
     -- Include the debugger into your lua
     local debugger = require('debugger')
+    local debug = debugger.new()
 
     -- Initialize the debugger imgui window
-    debugger.init()
+    debug:init()
 
     -- Add a table which you want watched by the debugger. It only accepts tables.
-    debugger.AddWatchedTable('some_table_name', table_to_watch)
+    debug:AddWatchedTable('some_table_name', table_to_watch)
 
     -- Create a button in imgui or use a bind to toggle displaying the debugger.
     if ImGui.Button('Open Debugger') then
-        debugger.Enable()
+        debug:Enable()
     end
 
     -- From some function you want to debug, capture its local vars:
     function some_function(input1, input2)
         local x
-        if debug['some_function'] then
-            debugger.SetFunctionLocals('some_function', debugger.getlocals())
+        if debug_flags['some_function'] then
+            debug:SetFunctionLocals('some_function', debug:getlocals())
         end
     end
 ]]
 local mq = require('mq')
 require('ImGui')
 
-local watched_tables = {}
-local current_values = {}
-local local_vars = {}
+local Debugger = {}
+Debugger.__index = Debugger
+
+function Debugger.new(name)
+    local newDebugger = setmetatable({
+        name = name,
+        watched_tables = {},
+        current_values = {},
+        local_vars = {},
+        open = false,
+        show = false,
+    }, Debugger)
+    mq.imgui.init('LuaDebugWindow'..newDebugger.name, function() newDebugger:DrawDebugWindow() end)
+    return newDebugger
+end
 
 function table.clone(org)
     return {unpack(org)}
 end
-
-local open, show = false, false
-local Debugger = {}
 
 local function traceback ()
     local level = 3 -- skip traceback() and getlocals() frames
@@ -57,7 +67,7 @@ local function traceback ()
     return stack
 end
 
-function Debugger.getlocals()
+function Debugger:getlocals()
     local locals = {}
     local a = 1
     while true do
@@ -69,40 +79,36 @@ function Debugger.getlocals()
     return {Variables=locals, Traceback=traceback()}
 end
 
-function Debugger.Init()
-    mq.imgui.init('LuaDebugWindow', Debugger.DrawDebugWindow)
+function Debugger:Enable()
+    self.open = true
 end
 
-function Debugger.Enable()
-    open = true
+function Debugger:Disable()
+    self.open = false
 end
 
-function Debugger.Disable()
-    open = false
-end
-
-function Debugger.AddWatchedTable(table_name, table_value)
+function Debugger:AddWatchedTable(table_name, table_value)
     if not table_name or not table_value or type(table_value) ~= 'table' then return false end
-    watched_tables[table_name] = table_value
+    self.watched_tables[table_name] = table_value
     return true
 end
 
-function Debugger.RemoveWatchedTable(table_name)
-    if not watched_tables[table_name] then return false end
-    watched_tables[table_name] = nil
-    current_values[table_name] = nil
+function Debugger:RemoveWatchedTable(table_name)
+    if not self.watched_tables[table_name] then return false end
+    self.watched_tables[table_name] = nil
+    self.current_values[table_name] = nil
     return true
 end
 
-function Debugger.SetFunctionLocals(function_name, locals)
+function Debugger:SetFunctionLocals(function_name, locals)
     if not function_name or not locals or type(locals) ~= 'table' then return false end
-    local_vars[function_name] = locals
+    self.local_vars[function_name] = locals
     return true
 end
 
-function Debugger.UnsetFunctionLocals(function_name)
-    if not local_vars[function_name] then return false end
-    local_vars[function_name] = nil
+function Debugger:UnsetFunctionLocals(function_name)
+    if not self.local_vars[function_name] then return false end
+    self.local_vars[function_name] = nil
     return true
 end
 
@@ -148,19 +154,19 @@ local function DrawTableRoot(table_name, table_value, current)
     end
 end
 
-function Debugger.DrawDebugWindow()
-    if not open then return end
-    open, show = ImGui.Begin('Lua Debug Window', open)
-    if show then
+function Debugger:DrawDebugWindow()
+    if not self.open then return end
+    self.open, self.show = ImGui.Begin('Lua Debug Window##'..self.name, self.open)
+    if self.show then
         ImGui.Text('Watched Tables:')
-        for table_name, table_value in pairs(watched_tables) do
-            if not current_values[table_name] then
-                current_values[table_name] = table.clone(watched_tables[table_name])
+        for table_name, table_value in pairs(self.watched_tables) do
+            if not self.current_values[table_name] then
+                self.current_values[table_name] = table.clone(self.watched_tables[table_name])
             end
-            DrawTableRoot(table_name, table_value, current_values[table_name])
+            DrawTableRoot(table_name, table_value, self.current_values[table_name])
         end
         ImGui.Text('Function Local Variables:')
-        for function_name, function_locals in pairs(local_vars) do
+        for function_name, function_locals in pairs(self.local_vars) do
             DrawTableRoot(function_name, function_locals)
         end
     end
@@ -169,15 +175,20 @@ end
 
 -- Begin Test Script
 --[[
+local debugTableValues = Debugger.new('tables')
+debugTableValues:Enable()
+
 local function some_function(input1, input2, input3)
     local x
-    Debugger.SetFunctionLocals('some_function', Debugger.getlocals())
+    debugTableValues:SetFunctionLocals('some_function', Debugger.getlocals())
 end
 
+local debugFunctionLocals = Debugger.new('functions')
+debugFunctionLocals:Enable()
+
 local some_table = {a_value=1, nested_table={b_value=100000}}
-Debugger.Init()
-Debugger.AddWatchedTable('some_table', some_table)
-Debugger.Enable()
+debugFunctionLocals:AddWatchedTable('some_table', some_table)
+
 while true do
     mq.delay(1000)
     some_table.a_value = some_table.a_value + 1
