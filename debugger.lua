@@ -7,9 +7,6 @@
     local debugger = require('debugger')
     local debug = debugger.new()
 
-    -- Initialize the debugger imgui window
-    debug:init()
-
     -- Add a table which you want watched by the debugger. It only accepts tables.
     debug:AddWatchedTable('some_table_name', table_to_watch)
 
