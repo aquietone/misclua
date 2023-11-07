@@ -177,7 +177,7 @@ end
 
 -- Begin Test Script
 --[[
-local debugTableValues = Debugger.new('tables')
+local debugTableValues = Debugger.new('Functions')
 debugTableValues:Enable()
 
 local function some_function(input1, input2, input3)
@@ -185,7 +185,7 @@ local function some_function(input1, input2, input3)
     debugTableValues:SetFunctionLocals('some_function', debugTableValues:getlocals())
 end
 
-local debugFunctionLocals = Debugger.new('functions')
+local debugFunctionLocals = Debugger.new('Tables')
 debugFunctionLocals:Enable()
 
 local some_table = {a_value=1, nested_table={b_value=100000}}
