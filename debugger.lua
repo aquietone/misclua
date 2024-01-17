@@ -113,7 +113,7 @@ local function DrawTable(table_value, current)
     for key, value in pairs(table_value) do
         if value and type(value) == 'table' then
             ImGui.PushStyleColor(ImGuiCol.Text, 1, 1, 0, 1)
-            if ImGui.TreeNode(key) then
+            if ImGui.TreeNode('%s', key) then
                 ImGui.PopStyleColor()
                 if current and not current[key] then
                     current[key] = table.clone(table_value)
@@ -142,7 +142,7 @@ end
 
 local function DrawTableRoot(table_name, table_value, current)
     ImGui.PushStyleColor(ImGuiCol.Text, 1, 1, 0, 1)
-    if ImGui.TreeNode(table_name) then
+    if ImGui.TreeNode('%s', table_name) then
         ImGui.PopStyleColor()
         DrawTable(table_value, current)
         ImGui.TreePop()
