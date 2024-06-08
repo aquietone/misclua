@@ -1,7 +1,5 @@
 -- Sample ImGui UI which does not end the script when the UI is closed.
---- @type Mq
 local mq = require('mq')
---- @type ImGui
 require('ImGui')
 
 -- Script control variables

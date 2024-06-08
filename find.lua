@@ -319,29 +319,6 @@ local function drawItemRow(item)
     end
 end
 
--- If there is an item on the cursor, display it.
-local function displayItemOnCursor()
-    if mq.TLO.Cursor() then
-        local cursor_item = mq.TLO.Cursor -- this will be an MQ item, so don't forget to use () on the members!
-        local mouse_x, mouse_y = ImGui.GetMousePos()
-        local window_x, window_y = ImGui.GetWindowPos()
-        local icon_x = mouse_x - window_x + 10
-        local icon_y = mouse_y - window_y + 10
-        local stack_x = icon_x + COUNT_X_OFFSET
-        local stack_y = icon_y + COUNT_Y_OFFSET
-        local text_size = ImGui.CalcTextSize(tostring(cursor_item.Stack()))
-        ImGui.SetCursorPos(icon_x, icon_y)
-        animItems:SetTextureCell(cursor_item.Icon() - EQ_ICON_OFFSET)
-        ImGui.DrawTextureAnimation(animItems, ICON_WIDTH, ICON_HEIGHT)
-        if cursor_item.Stackable() then
-            ImGui.SetCursorPos(stack_x, stack_y)
-            ImGui.DrawTextureAnimation(animBox, text_size, ImGui.GetTextLineHeight())
-            ImGui.SetCursorPos(stack_x - text_size, stack_y)
-            ImGui.TextUnformatted(tostring(cursor_item.Stack()))
-        end
-    end
-end
-
 local ColumnID_Icon = 1
 local ColumnID_Name = 2
 local ColumnID_Quantity = 3
@@ -662,7 +639,6 @@ local function FindGUI()
         openGUI, shouldDrawGUI = ImGui.Begin(string.format("Find Item Window"), openGUI, ImGuiWindowFlags.NoScrollbar)
         if shouldDrawGUI then
             displayWindowPanels()
-            displayItemOnCursor()
         end
         ImGui.End()
         if not openSearchGUI then return end

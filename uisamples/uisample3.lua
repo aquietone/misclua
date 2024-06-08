@@ -1,8 +1,6 @@
 -- Sample ImGui UI which performs some action when a button is pressed.
 -- This script will also exit when pressing the X on the window.
---- @type Mq
 local mq = require('mq')
---- @type ImGui
 require('ImGui')
 
 -- Script control variables

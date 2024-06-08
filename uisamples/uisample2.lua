@@ -1,7 +1,5 @@
 -- Sample ImGui UI which allows the user to set a string value
---- @type Mq
 local mq = require('mq')
---- @type ImGui
 require('ImGui')
 
 -- Script control variables

@@ -1,7 +1,5 @@
 -- Sample ImGui UI which shows a push/pop vs a set
---- @type Mq
 local mq = require('mq')
---- @type ImGui
 require('ImGui')
 
 -- Script control variables
