@@ -1,0 +1,169 @@
+local mq = require 'mq'
+require 'ImGui'
+
+local open, show = false, false
+local shownInZone = false
+local currentZone = mq.TLO.Zone.ShortName()
+
+local validZones = {
+    freeporttemple = {
+        {Name='Klon',Command='/multiline ; /nav spawn klonopin; /mqt klonopin'},
+        {Name='Bank',Command='/nav spawn Donlo'},
+        {Name='Shady',Command='/nav spawn Shady'},
+    },
+    poknowledge = {
+        {Name='Valium',Command='/multiline ; /nav spawn valium; /mqt valium'},
+        {Name='Bank',Command='/nav spawn Dogle'},
+        {Name='Shady',Command='/nav spawn Shady'},
+    },
+    overthere = {
+        {Name='Elias',Command='/multiline ; /nav spawn elias; /mqt elias'}
+    },
+    kithicor = {
+        {Name='Elias',Command='/multiline ; /nav spawn elias; /mqt elias'}
+    },
+    qrg = {
+        {Name='Elias',Command='/multiline ; /nav spawn elias; /mqt elias'}
+    },
+    blackburrow = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+    southkarana = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+    crushbone = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+    cazicthule = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+    qeytoqrg = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+    sebilis = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+    unrest = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+    mistmoore = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+    befallen = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+}
+
+local portNPCs = {
+    poknowledge = 'Valium',
+    freeporttemple = 'Klonopin',
+    nexus = 'Valium',
+}
+local ports = {
+    'T1',
+    'T2',
+    'T3',
+    'T4',
+    'T5',
+    'T6',
+    ['T1'] = {
+        'qrg',
+        'oot',
+        'soldungb',
+        'permafrost',
+    },
+    ['T2'] = {
+        'blackburrow',
+        'najena',
+        'runnyeye',
+    },
+    ['T3'] = {
+        'paw',
+        'soldunga',
+        'befallen',
+        'sro',    
+    },
+    ['T4'] = {
+        'cazicthule',
+        'crushbone',
+        'guktop',
+        'unrest',
+    },
+    ['T5'] = {
+        'hole',
+        'mistmoore',
+        'gukbottom',
+    },
+    ['T6'] = {
+        'sebilis',
+    },
+}
+
+local function npcIsNear(name)
+    return (mq.TLO.Spawn(name).Distance3D() or 100) < 20
+end
+
+local function taxiUI()
+    local zoneSN = mq.TLO.Zone.ShortName()
+    if zoneSN ~= currentZone then
+        shownInZone = false
+        currentZone = zoneSN
+    end
+    if not shownInZone and validZones[zoneSN] then
+        open, show = true, true
+    end
+    local zoneCommands = validZones[zoneSN]
+    if not zoneCommands then open, show = false, false return end
+    if zoneCommands[1].Name == 'HC' and not mq.TLO.Spawn('lazarus')() then open, show = false, false return end
+    if not open then show = false return end
+    open, show = ImGui.Begin('Taxi', open, bit32.bor(ImGuiWindowFlags.AlwaysAutoResize, ImGuiWindowFlags.NoTitleBar))
+    if show then
+        if zoneCommands then
+            for _,command in ipairs(zoneCommands) do
+                if ImGui.Button(string.format('%s', command.Name)) then
+                    mq.cmdf('%s', command.Command)
+                end
+                ImGui.SameLine()
+                if ImGui.Button(string.format('%s (Group)', command.Name)) then
+                    mq.cmdf('/dgg %s', command.Command)
+                end
+                ImGui.SameLine()
+            end
+            if ImGui.Button('Close') then
+                shownInZone = true
+                open = false
+            end
+        end
+        if portNPCs[zoneSN] then
+            if npcIsNear(portNPCs[zoneSN]) then
+                for _,tier in ipairs(ports) do
+                    ImGui.Separator()
+                    ImGui.TextColored(1, 1, 0, 1, '%s: ', tier)
+                    ImGui.SameLine()
+                    for _,port in ipairs(ports[tier]) do
+                        if ImGui.Button(string.format('%s', port)) then
+                            mq.cmdf('/dgg /multiline ; /tar %s ; /timed 2 /say %s', portNPCs[zoneSN], port)
+                        end
+                        ImGui.SameLine()
+                    end
+                    ImGui.NewLine()
+                end
+            end
+        end
+        if npcIsNear('lazarus') then
+            if ImGui.Button('Enter 1') then
+                mq.cmd('/dgg /say enter 1')
+            end
+        end
+    end
+    ImGui.End()
+    if not open then
+        shownInZone = true
+    end
+end
+
+mq.imgui.init('taxi', taxiUI)
+
+while true do
+    mq.delay(1000)
+end
