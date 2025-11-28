@@ -25,10 +25,37 @@ local validZones = {
     qrg = {
         {Name='Elias',Command='/multiline ; /nav spawn elias; /mqt elias'}
     },
+    qeytoqrg = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+    oot = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+    soldungb = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+    permafrost = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
     blackburrow = {
         {Name='HC',Command='/nav spawn laz'}
     },
+    najena = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+    runnyeye = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
     southkarana = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+    soldunga = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+    oasis = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+    befallen = {
         {Name='HC',Command='/nav spawn laz'}
     },
     crushbone = {
@@ -37,19 +64,22 @@ local validZones = {
     cazicthule = {
         {Name='HC',Command='/nav spawn laz'}
     },
-    qeytoqrg = {
-        {Name='HC',Command='/nav spawn laz'}
-    },
-    sebilis = {
-        {Name='HC',Command='/nav spawn laz'}
-    },
     unrest = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+    guktop = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+    gukbottom = {
         {Name='HC',Command='/nav spawn laz'}
     },
     mistmoore = {
         {Name='HC',Command='/nav spawn laz'}
     },
-    befallen = {
+    hole = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
+    sebilis = {
         {Name='HC',Command='/nav spawn laz'}
     },
 }
@@ -65,7 +95,11 @@ local ports = {
     'T3',
     'T4',
     'T5',
-    'T6',
+    'Other',
+    ['Other'] = {
+        'sebilis',
+        'karnor',
+    },
     ['T1'] = {
         'qrg',
         'oot',
@@ -94,9 +128,6 @@ local ports = {
         'mistmoore',
         'gukbottom',
     },
-    ['T6'] = {
-        'sebilis',
-    },
 }
 
 local function npcIsNear(name)
@@ -114,7 +145,7 @@ local function taxiUI()
     end
     local zoneCommands = validZones[zoneSN]
     if not zoneCommands then open, show = false, false return end
-    if zoneCommands[1].Name == 'HC' and not mq.TLO.Spawn('lazarus')() then open, show = false, false return end
+    if zoneCommands[1].Name == 'HC' and not mq.TLO.Spawn('lazarus untargetable')() then open, show = false, false return end
     if not open then show = false return end
     open, show = ImGui.Begin('Taxi', open, bit32.bor(ImGuiWindowFlags.AlwaysAutoResize, ImGuiWindowFlags.NoTitleBar))
     if show then
@@ -150,7 +181,7 @@ local function taxiUI()
                 end
             end
         end
-        if npcIsNear('lazarus') then
+        if npcIsNear('lazarus untargetable') then
             if ImGui.Button('Enter 1') then
                 mq.cmd('/dgg /say enter 1')
             end
