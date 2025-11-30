@@ -4,6 +4,8 @@ require 'ImGui'
 local open, show = false, false
 local shownInZone = false
 local currentZone = mq.TLO.Zone.ShortName()
+local broadcast = '/e3bcga'
+if not mq.TLO.Plugin('mq2mono')() then broadcast = '/dgg' end
 
 local validZones = {
     freeporttemple = {
@@ -82,6 +84,10 @@ local validZones = {
     sebilis = {
         {Name='HC',Command='/nav spawn laz'}
     },
+    discordtower = {
+        {Name='Mission NPCs',Command="/nav spawn Veylara"},
+        {Name='Wimbie',Command="/nav spawn wimbie litto"}
+    },
 }
 
 local portNPCs = {
@@ -151,12 +157,16 @@ local function taxiUI()
     if show then
         if zoneCommands then
             for _,command in ipairs(zoneCommands) do
+                -- if ImGui.Button(string.format('%s', command.Name)) then
+                --     mq.cmdf('%s', command.Command)
+                -- end
+                -- ImGui.SameLine()
                 if ImGui.Button(string.format('%s', command.Name)) then
-                    mq.cmdf('%s', command.Command)
-                end
-                ImGui.SameLine()
-                if ImGui.Button(string.format('%s (Group)', command.Name)) then
-                    mq.cmdf('/dgg %s', command.Command)
+                    if ImGui.IsKeyDown(ImGuiKey.LeftShift) or ImGui.IsKeyDown(ImGuiKey.RightShift) then
+                        mq.cmdf('%s', command.Command)
+                    else
+                        mq.cmdf('%s %s', broadcast, command.Command)
+                    end
                 end
                 ImGui.SameLine()
             end
@@ -173,7 +183,11 @@ local function taxiUI()
                     ImGui.SameLine()
                     for _,port in ipairs(ports[tier]) do
                         if ImGui.Button(string.format('%s', port)) then
-                            mq.cmdf('/dgg /multiline ; /tar %s ; /timed 2 /say %s', portNPCs[zoneSN], port)
+                            if ImGui.IsKeyDown(ImGuiKey.LeftShift) or ImGui.IsKeyDown(ImGuiKey.RightShift) then
+                                mq.cmdf('/multiline ; /tar %s ; /timed 2 /say %s', portNPCs[zoneSN], port)
+                            else
+                                mq.cmdf('%s /multiline ; /tar %s ; /timed 2 /say %s', broadcast, portNPCs[zoneSN], port)
+                            end
                         end
                         ImGui.SameLine()
                     end
@@ -183,7 +197,11 @@ local function taxiUI()
         end
         if npcIsNear('lazarus untargetable') then
             if ImGui.Button('Enter 1') then
-                mq.cmd('/dgg /say enter 1')
+                if ImGui.IsKeyDown(ImGuiKey.LeftShift) or ImGui.IsKeyDown(ImGuiKey.RightShift) then
+                    mq.cmd('/say enter 1')
+                else
+                    mq.cmd('%s /say enter 1', broadcast)
+                end
             end
         end
     end
