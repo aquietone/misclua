@@ -86,7 +86,8 @@ local validZones = {
     },
     discordtower = {
         {Name='Mission NPCs',Command="/nav spawn Veylara"},
-        {Name='Wimbie',Command="/nav spawn wimbie litto"}
+        {Name='Wimbie',Command="/nav spawn wimbie litto"},
+        {Name='Lucien',Command="/nav spawn lucien"},
     },
 }
 
