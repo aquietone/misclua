@@ -87,7 +87,7 @@ local validZones = {
     discordtower = {
         {Name='Mission NPCs',Command="/nav spawn Veylara"},
         {Name='Wimbie',Command="/nav spawn wimbie litto"},
-        {Name='Lucien',Command="/nav spawn lucien"},
+        {Name='Lucian',Command="/nav spawn lucian"},
     },
 }
 
@@ -201,7 +201,7 @@ local function taxiUI()
                 if ImGui.IsKeyDown(ImGuiKey.LeftShift) or ImGui.IsKeyDown(ImGuiKey.RightShift) then
                     mq.cmd('/say enter 1')
                 else
-                    mq.cmd('%s /say enter 1', broadcast)
+                    mq.cmdf('%s /say enter 1', broadcast)
                 end
             end
         end
