@@ -104,6 +104,8 @@ local ports = {
     'T5',
     'Other',
     ['Other'] = {
+        'return',
+        'poknowledge',
         'sebilis',
         'karnor',
     },
@@ -183,11 +185,13 @@ local function taxiUI()
                     ImGui.TextColored(1, 1, 0, 1, '%s: ', tier)
                     ImGui.SameLine()
                     for _,port in ipairs(ports[tier]) do
-                        if ImGui.Button(string.format('%s', port)) then
-                            if ImGui.IsKeyDown(ImGuiKey.LeftShift) or ImGui.IsKeyDown(ImGuiKey.RightShift) then
-                                mq.cmdf('/multiline ; /tar %s ; /timed 2 /say %s', portNPCs[zoneSN], port)
-                            else
-                                mq.cmdf('%s /multiline ; /tar %s ; /timed 2 /say %s', broadcast, portNPCs[zoneSN], port)
+                        if port ~= 'poknowledge' or zoneSN ~= 'poknowledge' then
+                            if ImGui.Button(string.format('%s', port)) then
+                                if ImGui.IsKeyDown(ImGuiKey.LeftShift) or ImGui.IsKeyDown(ImGuiKey.RightShift) then
+                                    mq.cmdf('/multiline ; /tar %s ; /timed 2 /say %s', portNPCs[zoneSN], port)
+                                else
+                                    mq.cmdf('%s /multiline ; /tar %s ; /timed 2 /say %s', broadcast, portNPCs[zoneSN], port)
+                                end
                             end
                         end
                         ImGui.SameLine()
