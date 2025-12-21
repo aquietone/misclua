@@ -89,6 +89,9 @@ local validZones = {
         {Name='Wimbie',Command="/nav spawn wimbie litto"},
         {Name='Lucian',Command="/nav spawn lucian"},
     },
+    -- qey2hh1 Elias Blackthorn selana, fenrir
+    -- qrg Elias Blackthorn investigate, Tranquility send you
+    -- karnor Elias Blackthorn challenge
 }
 
 local portNPCs = {
@@ -137,6 +140,11 @@ local ports = {
         'mistmoore',
         'gukbottom',
     },
+}
+local nvs = {
+    ['Veylara Duskweave'] = {'first dream', 'second dream'},
+    ['Kaedric Morryn'] = {'first spiral', 'second spiral', 'third spiral'},
+    ['Selthira'] = {'confirm physician', 'confirm occultist', 'confirm warden', 'confirm brawler'},
 }
 
 local function npcIsNear(name)
@@ -198,6 +206,15 @@ local function taxiUI()
                     end
                     ImGui.NewLine()
                 end
+            end
+        end
+        local myTarget = mq.TLO.Target.CleanName()
+        if zoneSN == 'discordtower' and nvs[myTarget] then
+            for _,command in ipairs(nvs[myTarget]) do
+                if ImGui.Button(string.format('%s', command)) then
+                    mq.cmdf('/say %s', command)
+                end
+                ImGui.SameLine()
             end
         end
         if npcIsNear('lazarus untargetable') then
