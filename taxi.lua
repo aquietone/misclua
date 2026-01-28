@@ -27,6 +27,7 @@ local validZones = {
     qrg = {
         {Name='Elias',Command='/multiline ; /nav spawn elias; /mqt elias'}
     },
+    -- T1
     qeytoqrg = {
         {Name='HC',Command='/nav spawn laz'}
     },
@@ -81,6 +82,9 @@ local validZones = {
     hole = {
         {Name='HC',Command='/nav spawn laz'}
     },
+    paw = {
+        {Name='HC',Command='/nav spawn laz'}
+    },
     sebilis = {
         {Name='HC',Command='/nav spawn laz'}
     },
@@ -89,6 +93,9 @@ local validZones = {
         {Name='Wimbie',Command="/nav spawn wimbie litto"},
         {Name='Lucian',Command="/nav spawn lucian"},
     },
+    qey2hh1 = {
+        {Name='Elias Blackthorn', Command='/multiline ; /nav spawn elias; /mqt elias'}
+    }
     -- qey2hh1 Elias Blackthorn selana, fenrir
     -- qrg Elias Blackthorn investigate, Tranquility send you
     -- karnor Elias Blackthorn challenge
@@ -141,12 +148,35 @@ local ports = {
         'gukbottom',
     },
 }
-local nvs = {
-    ['Veylara Duskweave'] = {'first dream', 'second dream'},
-    ['Kaedric Morryn'] = {'first spiral', 'second spiral', 'third spiral'},
-    ['Selthira'] = {'confirm physician', 'confirm occultist', 'confirm warden', 'confirm brawler'},
+local missionNPCs = {
+    qrg = {
+        ['Elias Blackthorn'] = {'investigate'},
+        ['Tranquility'] = {'send you'},
+    },
+    qey2hh1 = {
+        ['Elias Blackthorn'] = {'selana', 'fenrir'},
+    },
+    overthere = {
+        ['Elias Blackthorn'] = {'need text'},
+    },
+    -- kithicor = {
+    --     ['Elias Blackthorn'] = {''},
+    -- },
+    karnor = {
+        ['Elias Blackthorn'] = {'challenge'},
+    },
+    mistmoore = {
+        ['Theodore Wardwell'] = {'finish them off'},
+    },
+    burningwood = {
+        ['Theodore Wardwell'] = {'need text'},
+    },
+    discordtower = {
+        ['Veylara Duskweave'] = {'first dream', 'second dream'},
+        ['Kaedric Morryn'] = {'first spiral', 'second spiral', 'third spiral'},
+        ['Selthira'] = {'confirm physician', 'confirm occultist', 'confirm warden', 'confirm brawler'},
+    },
 }
-
 local function npcIsNear(name)
     return (mq.TLO.Spawn(name).Distance3D() or 100) < 20
 end
@@ -209,12 +239,15 @@ local function taxiUI()
             end
         end
         local myTarget = mq.TLO.Target.CleanName()
-        if zoneSN == 'discordtower' and nvs[myTarget] then
-            for _,command in ipairs(nvs[myTarget]) do
-                if ImGui.Button(string.format('%s', command)) then
-                    mq.cmdf('/say %s', command)
+        if missionNPCs[zoneSN] and myTarget then
+            local targetCommands = missionNPCs[zoneSN][myTarget]
+            if targetCommands then
+                for _,command in ipairs(targetCommands) do
+                    if ImGui.Button(string.format('%s', command)) then
+                        mq.cmdf('/say %s', command)
+                    end
+                    ImGui.SameLine()
                 end
-                ImGui.SameLine()
             end
         end
         if npcIsNear('lazarus untargetable') then
